@@ -4,6 +4,7 @@ from .database import engine, Base, SessionLocal
 from .routers import models, simulate, parse
 from .seed import seed_sample_data
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,10 +14,17 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="State Machine Simulator API", version="1.0.0")
 
+APP_ENV = os.getenv("APP_ENV", "local")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+
+if APP_ENV == "production":
+    # Allow all origins in production (Cloud Run URL is dynamic)
+    CORS_ORIGINS = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=APP_ENV != "production",
     allow_methods=["*"],
     allow_headers=["*"],
 )
