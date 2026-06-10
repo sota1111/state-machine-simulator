@@ -29,6 +29,12 @@ function buildMermaidDiagram(machine: StateMachine, currentState?: string): stri
       lines.push(`    ${name} --> [*]`)
     }
   }
+
+  if (currentState) {
+    const current = currentState.replace(/\s/g, '_')
+    lines.push('    classDef current fill:#dbeafe,stroke:#2563eb,stroke-width:3px')
+    lines.push(`    class ${current} current`)
+  }
   
   return lines.join('\n')
 }
