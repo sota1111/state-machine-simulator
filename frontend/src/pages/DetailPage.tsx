@@ -1,0 +1,85 @@
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { getModel, getAnalysis } from '../api'
+import StateDiagram from '../components/StateDiagram'
+import SimulationPanel from '../components/SimulationPanel'
+import AnalysisPanel from '../components/AnalysisPanel'
+
+export default function DetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [currentState, setCurrentState] = useState<string | undefined>()
+
+  const { data: machine, isLoading: machineLoading } = useQuery({
+    queryKey: ['model', id],
+    queryFn: () => getModel(id!),
+    enabled: !!id,
+  })
+
+  const { data: analysis } = useQuery({
+    queryKey: ['analysis', id],
+    queryFn: () => getAnalysis(id!),
+    enabled: !!id,
+  })
+
+  if (machineLoading) return <div className="text-center py-12 text-gray-500">読み込み中...</div>
+  if (!machine) return <div className="text-center py-12 text-red-500">モデルが見つかりません</div>
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700">
+          ← 一覧に戻る
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
+      </div>
+
+      {machine.description && (
+        <p className="text-gray-600">{machine.description}</p>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h2 className="font-semibold text-gray-700">状態遷移図</h2>
+          <StateDiagram machine={machine} currentState={currentState ?? machine.initial_state} />
+        </div>
+
+        <div className="space-y-4">
+          <SimulationPanel
+            machine={machine}
+            onStateChange={setCurrentState}
+          />
+          {analysis && <AnalysisPanel analysis={analysis} />}
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h3 className="font-semibold text-gray-700 mb-3">状態一覧</h3>
+          <div className="space-y-2">
+            {machine.states.map(s => (
+              <div key={s.id} className="flex items-center justify-between text-sm">
+                <span className={`font-medium ${s.name === (currentState ?? machine.initial_state) ? 'text-blue-600' : 'text-gray-800'}`}>
+                  {s.name}{s.name === machine.initial_state ? ' (初期)' : ''}{s.is_terminal ? ' (終端)' : ''}
+                </span>
+                {s.description && <span className="text-gray-500 text-xs">{s.description}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h3 className="font-semibold text-gray-700 mb-3">遷移一覧</h3>
+          <div className="space-y-2">
+            {machine.transitions.map(t => (
+              <div key={t.id} className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
+                {t.from_state} --[{t.event}]--&gt; {t.to_state}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
