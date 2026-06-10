@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
-from .routers import models, simulate
+from .routers import models, simulate, parse
 from .seed import seed_sample_data
 import logging
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(models.router, prefix="/api")
 app.include_router(simulate.router, prefix="/api")
+app.include_router(parse.router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():
