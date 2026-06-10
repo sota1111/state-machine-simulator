@@ -167,3 +167,131 @@ Yellow --[timer_expire]--> Red
 3. 「AIで解析する」ボタンをクリック
 4. 解析結果（状態・遷移一覧）が表示されることを確認
 5. 「このモデルを保存する」をクリックして詳細画面に遷移することを確認
+
+---
+
+## クラウドデプロイ（GCP Cloud Run）
+
+### アーキテクチャ概要（クラウド）
+
+```
+GitHub Actions（main merge）
+  └─► Artifact Registry（Dockerイメージ）
+        └─► Cloud Run Service（nginx + FastAPI + React）
+              └─► Firestore（状態遷移モデル保存）
+                    └─► Secret Manager（ANTHROPIC_API_KEY）
+```
+
+- **Cloud Run**: シングルコンテナ（nginx + FastAPI + React静的ファイル）
+- **Firestore**: 状態遷移モデルの保存（APP_ENV=productionで自動切り替え）
+- **min-instances=0**: リクエストなし時はコンテナ停止（コスト削減）
+- **Artifact Registry**: Dockerイメージ管理
+
+### 前提条件
+
+- GCP プロジェクト作成済み（課金有効化済み）
+- `gcloud` CLI インストール・認証済み
+- Docker インストール済み
+- GitHub リポジトリの Secrets 設定済み（後述）
+
+### GCPセットアップ手順
+
+```bash
+export GCP_PROJECT_ID=your-project-id
+export GCP_REGION=asia-northeast1
+export GCP_SERVICE_ACCOUNT_NAME=state-machine-sa
+
+# 1. 必要APIを有効化
+bash scripts/gcp/enable-apis.sh
+
+# 2. Firestoreデータベース作成
+bash scripts/gcp/create-firestore.sh
+
+# 3. Secret Manager にシークレット登録
+bash scripts/gcp/create-secrets.sh
+
+# 4. IAM権限設定
+bash scripts/gcp/set-iam.sh
+
+# 5. Cloud Run Service デプロイ（Docker buildを含む）
+bash scripts/gcp/deploy-service.sh
+```
+
+### 環境変数一覧
+
+| 変数名 | 説明 | 必須 | デフォルト |
+|---|---|---|---|
+| `APP_ENV` | 実行環境（local / production） | Yes | `local` |
+| `ANTHROPIC_API_KEY` | Anthropic API キー | No（なければAI機能skip） | - |
+| `DATABASE_URL` | SQLite DB パス（ローカルのみ） | ローカルのみ | - |
+| `GCP_PROJECT_ID` | GCP プロジェクト ID | 本番必須 | - |
+| `GCP_REGION` | GCP リージョン | 本番必須 | `asia-northeast1` |
+| `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
+| `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
+| `LOG_LEVEL` | ログレベル | No | `INFO` |
+
+ローカル開発:
+```bash
+cp .env.example .env
+# .env を編集
+docker compose up --build
+```
+
+### Secret Manager 設定
+
+```bash
+echo -n "your-anthropic-key" | gcloud secrets create ANTHROPIC_API_KEY \
+  --project=$GCP_PROJECT_ID --data-file=-
+```
+
+### GitHub Actions 設定
+
+Settings → Secrets and variables → Actions で以下を設定:
+
+| Secret 名 | 説明 |
+|---|---|
+| `GCP_PROJECT_ID` | GCP プロジェクト ID |
+| `GCP_REGION` | デプロイリージョン（例: `asia-northeast1`） |
+| `GCP_SERVICE_ACCOUNT` | Cloud Run 実行用サービスアカウント |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Workload Identity Federation プロバイダ URL |
+
+### サンプルデータについて
+
+ローカル環境（APP_ENV=local）では起動時にサンプルデータが自動投入されます。
+クラウド環境（APP_ENV=production）ではFirestoreへの自動投入はありません。
+初回デプロイ後、アプリのUIからモデルを手動登録してください。
+
+### コスト管理
+
+| サービス | 無料枠 | 想定コスト |
+|---|---|---|
+| Cloud Run | 月200万リクエスト・360K GB秒 | min-instances=0で ~0円/月 |
+| Firestore | 月50K読み取り/20K書き込み | 小規模利用で ~0円/月 |
+| Artifact Registry | 0.5GB | 約数円/月 |
+| Secret Manager | 月6アクセス無料 | ~0円/月 |
+| **合計** | | **~数円/月（小規模利用時）** |
+
+> ⚠️ 利用量が増えると課金が発生します。GCP コンソールで予算アラートを設定することを推奨します。
+
+**予算アラートの設定:**
+1. GCP Console → 課金 → 予算とアラート
+2. 「予算を作成」→ 金額（例: 500円）を設定
+3. アラート通知先のメールアドレスを設定
+
+### Artifact Registry の古いイメージ削除
+
+```bash
+gcloud artifacts docker images list \
+  asia-northeast1-docker.pkg.dev/$GCP_PROJECT_ID/state-machine-registry/state-machine-app \
+  --filter="UPDATE_TIME < -P30D" --format="value(DIGEST)" | \
+  xargs -I {} gcloud artifacts docker images delete \
+    asia-northeast1-docker.pkg.dev/$GCP_PROJECT_ID/state-machine-registry/state-machine-app@{} \
+    --quiet --delete-tags 2>/dev/null || true
+```
+
+### セキュリティ注意事項
+
+- **`.env` をコミットしない** — `.gitignore` で除外済み
+- **サービスアカウントキーをリポジトリに置かない** — Workload Identity Federation を使用
+- **Cloud Run は unauthenticated アクセス許可**（MVP のため）
+- 認証情報は Secret Manager で管理
