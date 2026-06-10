@@ -23,3 +23,35 @@ frontend/.vite/
 # OS
 .DS_Store
 *.swp
+
+# Service account keys and credentials
+*-service-account*.json
+*-key*.json
+credentials.json
+gcloud-service-key.json
+service-account.json
+
+# GCP / Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Additional Node
+.npm/
+*.tgz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+tmp/
