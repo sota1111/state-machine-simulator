@@ -254,6 +254,32 @@ bash scripts/gcp/deploy-service.sh
 | `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
 | `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
 | `LOG_LEVEL` | ログレベル | No | `INFO` |
+| `AUTH_PASSWORD` | ログイン用パスワード | Yes | - |
+| `JWT_SECRET` | JWT署名用シークレット | Yes | - |
+
+## 認証 (Authentication)
+
+本アプリケーションは、個人利用を想定したシンプルなパスワード認証機能を備えています。
+
+### 設定方法
+
+`.env` ファイルに以下の変数を設定してください。
+
+```env
+AUTH_PASSWORD=your-secure-password
+JWT_SECRET=your-random-secret-key
+```
+
+### 利用方法
+
+1. アプリケーションにアクセスするとログイン画面が表示されます。
+2. 設定した `AUTH_PASSWORD` を入力してログインします。
+3. ログイン後は通常の機能が利用可能です。
+4. ログアウトはナビゲーションバーの「ログアウト」ボタンから行えます。
+
+**注意点:**
+- ユーザー登録機能はありません。管理者が設定した単一のパスワードで認証します。
+- トークンの有効期限は24時間です。期限が切れると自動的にログイン画面へリダイレクトされます。
 
 ローカル開発:
 ```bash
