@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
 import sys
+
+from .dependencies import get_current_user
+from .routers import auth as auth_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,9 +40,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(models_router.router, prefix="/api")
-app.include_router(simulate.router, prefix="/api")
-app.include_router(parse.router, prefix="/api")
+app.include_router(auth_router.router, prefix="/api")
+app.include_router(models_router.router, prefix="/api", dependencies=[Depends(get_current_user)])
+app.include_router(simulate.router, prefix="/api", dependencies=[Depends(get_current_user)])
+app.include_router(parse.router, prefix="/api", dependencies=[Depends(get_current_user)])
 
 @app.on_event("startup")
 async def startup_event():
