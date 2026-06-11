@@ -4,6 +4,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class APIKeyNotConfiguredError(Exception):
+    pass
+
 def parse_natural_language(text: str) -> dict:
     """
     Parse natural language description into a state machine JSON.
@@ -13,7 +16,9 @@ def parse_natural_language(text: str) -> dict:
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
+        raise APIKeyNotConfiguredError(
+            "ANTHROPIC_API_KEY が設定されていません。AI解析機能を使用するには .env ファイルにAPIキーを設定してください。手動モードでステートマシンを作成することもできます。"
+        )
     
     client = anthropic.Anthropic(api_key=api_key)
     

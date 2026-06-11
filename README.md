@@ -6,6 +6,31 @@
 
 状態遷移仕様は設計書や要求仕様書に自然言語で記載されることが多く、レビューや設計時に状態や遷移の抜け漏れが発生しやすい。本ツールは自然言語入力からAI（Claude API）を使って状態遷移モデルを自動生成し、可視化・シミュレーションを可能にする。
 
+## 認証情報なし開発クイックスタート
+
+**Anthropic APIキーなしで即座にローカル動作確認が可能です。**
+
+手動作成モードを使用するため、Claude APIへの接続は不要です。
+
+```bash
+# 1. リポジトリのクローン
+git clone https://github.com/sota1111/state-machine-simulator.git
+cd state-machine-simulator
+
+# 2. 環境変数設定（APIキーは省略可）
+cp .env.example .env
+
+# 3. 起動
+docker compose up --build
+```
+
+アクセス: http://localhost:5173
+
+**認証情報が不要な理由:**
+- `ANTHROPIC_API_KEY` 未設定時は「手動作成モード」でステートマシンを作成できます
+- ローカルデータはSQLiteに保存されます（GCP不要）
+- AIによる自然言語解析が不要な場合は、APIキーなしで全機能を利用可能です
+
 ## 起動方法
 
 ### 必要環境
