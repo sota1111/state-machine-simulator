@@ -23,6 +23,24 @@ export default function DetailPage() {
     enabled: !!id,
   })
 
+  const handleExport = () => {
+    if (!machine) return
+    const data = {
+      name: machine.name,
+      description: machine.description,
+      initial_state: machine.initial_state,
+      states: machine.states.map(s => ({ name: s.name, description: s.description, is_terminal: s.is_terminal })),
+      transitions: machine.transitions.map(t => ({ from_state: t.from_state, to_state: t.to_state, event: t.event })),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${machine.name.replace(/\s+/g, '_')}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (machineLoading) return <div className="text-center py-12 text-gray-500">読み込み中...</div>
   if (!machine) return <div className="text-center py-12 text-red-500">モデルが見つかりません</div>
 
@@ -33,6 +51,12 @@ export default function DetailPage() {
           ← 一覧に戻る
         </button>
         <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
+        <button
+          onClick={handleExport}
+          className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+        >
+          JSON エクスポート
+        </button>
       </div>
 
       {machine.description && (

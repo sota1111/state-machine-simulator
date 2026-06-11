@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ..services.nlp import parse_natural_language
+from ..services.nlp import parse_natural_language, APIKeyNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,8 @@ def parse_text(request: ParseRequest):
     try:
         result = parse_natural_language(request.text)
         return ParseResponse(**result)
+    except APIKeyNotConfiguredError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except ValueError as e:
         logger.error(f"Parse validation error: {e}")
         raise HTTPException(status_code=422, detail=f"Failed to parse state machine: {str(e)}")

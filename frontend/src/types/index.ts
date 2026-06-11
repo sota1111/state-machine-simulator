@@ -25,6 +25,18 @@ export interface StateMachine {
   transitions: Transition[]
 }
 
+export type StateInput = Pick<State, 'name' | 'description' | 'is_terminal'>
+
+export type TransitionInput = Pick<Transition, 'from_state' | 'to_state' | 'event'>
+
+export interface StateMachineInput {
+  name: string
+  description: string
+  initial_state: string
+  states: StateInput[]
+  transitions: TransitionInput[]
+}
+
 export interface SimulationStep {
   state: string
   event: string
