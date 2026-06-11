@@ -2,6 +2,12 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+interface LoginLocationState {
+  from?: {
+    pathname?: string
+  }
+}
+
 const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -10,7 +16,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const from = (location.state as any)?.from?.pathname || '/'
+  const from = (location.state as LoginLocationState | null)?.from?.pathname || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,8 +26,8 @@ const LoginPage: React.FC = () => {
     try {
       await login(password)
       navigate(from, { replace: true })
-    } catch (err: any) {
-      setError(err.message || 'ログインに失敗しました')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'ログインに失敗しました')
     } finally {
       setIsLoading(false)
     }

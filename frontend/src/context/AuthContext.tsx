@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState } from 'react'
 import axios from 'axios'
 
@@ -19,7 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token } = response.data
       localStorage.setItem('auth_token', access_token)
       setToken(access_token)
-    } catch (error) {
+    } catch {
       throw new Error('パスワードが正しくありません')
     }
   }
