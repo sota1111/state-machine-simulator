@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { StateMachine, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse } from '../types'
+import type { StateMachine, StateMachineInput, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -12,10 +12,10 @@ export const getModels = (): Promise<StateMachine[]> =>
 export const getModel = (id: string): Promise<StateMachine> =>
   api.get(`/models/${id}`).then(r => r.data)
 
-export const createModel = (data: Omit<StateMachine, 'id' | 'created_at' | 'updated_at'>): Promise<StateMachine> =>
+export const createModel = (data: StateMachineInput): Promise<StateMachine> =>
   api.post('/models/', data).then(r => r.data)
 
-export const updateModel = (id: string, data: Omit<StateMachine, 'id' | 'created_at' | 'updated_at'>): Promise<StateMachine> =>
+export const updateModel = (id: string, data: StateMachineInput): Promise<StateMachine> =>
   api.put(`/models/${id}`, data).then(r => r.data)
 
 export const deleteModel = (id: string): Promise<void> =>
