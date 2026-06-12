@@ -14,6 +14,8 @@ backend/data/*.db
 
 # Environment
 .env
+.env.local
+*.env
 
 # Node
 node_modules/
