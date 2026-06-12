@@ -346,3 +346,49 @@ gcloud artifacts docker images list \
 - **サービスアカウントキーをリポジトリに置かない** — Workload Identity Federation を使用
 - **Cloud Run は unauthenticated アクセス許可**（MVP のため）
 - 認証情報は Secret Manager で管理
+
+## GCP デプロイ準備
+
+### 概要
+
+このアプリは FastAPI (Backend) + React (Frontend) 構成であり、Cloud Run にデプロイできます。
+
+### コンテナ化
+
+既存の Dockerfile を使用します:
+
+```bash
+# Backend
+docker build -t state-machine-simulator-backend ./backend
+docker run -p 8000:8000 --env-file .env state-machine-simulator-backend
+
+# Frontend
+docker build -t state-machine-simulator-frontend ./frontend
+docker run -p 8080:8080 state-machine-simulator-frontend
+```
+
+### GCP 実行環境
+
+- **Backend**: Cloud Run (ポート `8000`)
+- **Frontend**: Cloud Run (ポート `8080`) または Firebase Hosting
+
+### データ永続化について
+
+現在 SQLite を使用しています。Cloud Run はステートレスなため、本番環境では以下を検討してください:
+
+- **Cloud SQL** (PostgreSQL/MySQL) への移行
+- **Firestore** への移行
+- Cloud Run の起動時に Cloud Storage からDBファイルをマウント
+
+現時点では SQLite のまま開発継続が可能です（実デプロイ時に移行検討）。
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| GEMINI_API_KEY / OPENAI_API_KEY | 生成AI API キー（Secret Manager 推奨） |
+
+### 注意事項
+
+- 実際の `.env` ファイルは Git 管理対象外 (`.gitignore` 設定済み)
+- API キーは Cloud Run の環境変数設定または Secret Manager で管理してください
