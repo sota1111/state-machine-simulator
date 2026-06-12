@@ -50,7 +50,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,AUTH_PASSWORD=${AUTH_PASSWORD},JWT_SECRET=${JWT_SECRET}" \
+  --set-env-vars="APP_ENV=local,AUTH_PASSWORD=${AUTH_PASSWORD},JWT_SECRET=${JWT_SECRET},DATABASE_URL=sqlite:////tmp/app.db" \
   --allow-unauthenticated \
   --quiet
 
