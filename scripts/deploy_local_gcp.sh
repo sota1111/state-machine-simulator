@@ -76,8 +76,17 @@ gcloud builds submit . \
 
 # Cloud Run へデプロイ
 echo "--- Cloud Run デプロイ ---"
+
+# Secret Manager: 初回デプロイ前に以下を実行してください
+# echo -n "value" | gcloud secrets create state-machine-auth-password --data-file=- --project=$PROJECT_ID
+# echo -n "value" | gcloud secrets create state-machine-jwt-secret --data-file=- --project=$PROJECT_ID
+# gcloud projects add-iam-policy-binding $PROJECT_ID \
+#   --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+#   --role="roles/secretmanager.secretAccessor"
+
 gcloud run deploy "${SERVICE_NAME}" \
   --image="${IMAGE}:latest" \
+  --set-secrets="AUTH_PASSWORD=state-machine-auth-password:latest,JWT_SECRET=state-machine-jwt-secret:latest" \
   --project="${PROJECT_ID}" \
   --region="${REGION}" \
   --platform=managed \
@@ -87,7 +96,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,AUTH_PASSWORD=${AUTH_PASSWORD},JWT_SECRET=${JWT_SECRET},DATABASE_URL=sqlite:////tmp/app.db" \
+  --set-env-vars="APP_ENV=local,DATABASE_URL=sqlite:////tmp/app.db" \
   --allow-unauthenticated \
   --quiet
 
