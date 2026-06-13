@@ -258,6 +258,23 @@ bash scripts/gcp/deploy-service.sh
 | `JWT_SECRET` | JWT署名用シークレット | Yes | - |
 
 ## 認証 (Authentication)
+### GCP Secret Manager セットアップ
+
+本番環境（Cloud Run）では機密情報を Secret Manager で管理します。初回デプロイ前に以下のコマンドでシークレットを作成してください。
+
+```bash
+# パスワードの作成
+echo -n "your-password" | gcloud secrets create state-machine-auth-password --data-file=- --project=YOUR_PROJECT_ID
+
+# JWT署名シークレットの作成
+echo -n "your-jwt-secret" | gcloud secrets create state-machine-jwt-secret --data-file=- --project=YOUR_PROJECT_ID
+
+# Cloud Run サービスアカウントへの権限付与
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
 
 本アプリケーションは、個人利用を想定したシンプルなパスワード認証機能を備えています。
 
