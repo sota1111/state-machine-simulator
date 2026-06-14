@@ -1,29 +1,24 @@
 import os
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
+import hmac
+import hashlib
+from fastapi import Cookie, HTTPException, status
 
-security = HTTPBearer()
+_APP_NAME = "state-machine-simulator"
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    secret = os.getenv("JWT_SECRET")
-    if not secret:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="JWT_SECRET not configured"
-        )
-    
-    try:
-        payload = jwt.decode(token, secret, algorithms=["HS256"])
-        if payload.get("sub") != "owner":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
-        return True
-    except JWTError:
+
+def get_current_user(auth_token: str = Cookie(None)) -> str:
+    auth_secret = os.getenv("AUTH_SECRET")
+    if not auth_secret or not auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail="Not authenticated",
         )
+    expected = hmac.new(
+        auth_secret.encode(), f"{_APP_NAME}-auth".encode(), hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(auth_token, expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+    return "authenticated"

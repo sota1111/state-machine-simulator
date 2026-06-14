@@ -1,48 +1,48 @@
-/* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState } from 'react'
-import axios from 'axios'
-
-interface AuthContextType {
-  token: string | null
-  isAuthenticated: boolean
-  login: (password: string) => Promise<void>
-  logout: () => void
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import React, { useState, useEffect } from 'react'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth } from '../lib/firebase'
+import { AuthContext } from './authContextValue'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'))
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [email, setEmail] = useState<string | null>(null)
 
-  const login = async (password: string) => {
-    try {
-      const response = await axios.post('/api/auth/login', { password })
-      const { access_token } = response.data
-      localStorage.setItem('auth_token', access_token)
-      setToken(access_token)
-    } catch {
-      throw new Error('パスワードが正しくありません')
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => {
+        if (res.ok) setIsAuthenticated(true)
+        else { setIsAuthenticated(false); setEmail(null) }
+      })
+      .catch(() => { setIsAuthenticated(false); setEmail(null) })
+  }, [])
+
+  const login = async (emailAddr: string, password: string) => {
+    const credential = await signInWithEmailAndPassword(auth, emailAddr, password)
+    const idToken = await credential.user.getIdToken()
+    const res = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ idToken }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.detail ?? '認証に失敗しました')
     }
+    setIsAuthenticated(true)
+    setEmail(emailAddr)
   }
 
-  const logout = () => {
-    localStorage.removeItem('auth_token')
-    setToken(null)
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    await signOut(auth)
+    setIsAuthenticated(false)
+    setEmail(null)
   }
-
-  const isAuthenticated = !!token
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, email, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
-}
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 }

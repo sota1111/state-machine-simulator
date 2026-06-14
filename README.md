@@ -254,49 +254,50 @@ bash scripts/gcp/deploy-service.sh
 | `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
 | `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
 | `LOG_LEVEL` | ログレベル | No | `INFO` |
-| `AUTH_PASSWORD` | ログイン用パスワード | Yes | - |
-| `JWT_SECRET` | JWT署名用シークレット | Yes | - |
+| `VITE_FIREBASE_API_KEY` | Firebase API Key | Yes | - |
+| `AUTH_SECRET` | セッション署名用シークレット | Yes | - |
 
 ## 認証 (Authentication)
-### GCP Secret Manager セットアップ
 
-本番環境（Cloud Run）では機密情報を Secret Manager で管理します。初回デプロイ前に以下のコマンドでシークレットを作成してください。
-
-```bash
-# パスワードの作成
-echo -n "your-password" | gcloud secrets create state-machine-auth-password --data-file=- --project=YOUR_PROJECT_ID
-
-# JWT署名シークレットの作成
-echo -n "your-jwt-secret" | gcloud secrets create state-machine-jwt-secret --data-file=- --project=YOUR_PROJECT_ID
-
-# Cloud Run サービスアカウントへの権限付与
-gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-```
-
-
-本アプリケーションは、個人利用を想定したシンプルなパスワード認証機能を備えています。
+本アプリケーションは、Firebase Authentication を使用したメールアドレス・パスワード認証機能を備えています。
 
 ### 設定方法
 
 `.env` ファイルに以下の変数を設定してください。
 
 ```env
-AUTH_PASSWORD=your-secure-password
-JWT_SECRET=your-random-secret-key
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_APP_ID=your-firebase-app-id
+ALLOWED_USER_EMAILS=your-email1@example.com,your-email2@example.com
+AUTH_SECRET=your-random-secret-key
 ```
 
 ### 利用方法
 
 1. アプリケーションにアクセスするとログイン画面が表示されます。
-2. 設定した `AUTH_PASSWORD` を入力してログインします。
-3. ログイン後は通常の機能が利用可能です。
-4. ログアウトはナビゲーションバーの「ログアウト」ボタンから行えます。
+2. Firebase Console で作成したメールアドレスとパスワードを入力してログインします。
+3. `ALLOWED_USER_EMAILS` に設定されたメールアドレスのみがログイン可能です。
+4. ログイン後は通常の機能が利用可能です。
+5. ログアウトはナビゲーションバーの「ログアウト」ボタンから行えます。
 
-**注意点:**
-- ユーザー登録機能はありません。管理者が設定した単一のパスワードで認証します。
-- トークンの有効期限は24時間です。期限が切れると自動的にログイン画面へリダイレクトされます。
+### GCP Secret Manager セットアップ
+
+本番環境（Cloud Run）では機密情報を Secret Manager で管理します。初回デプロイ前に以下のコマンドでシークレットを作成してください。
+
+```bash
+# セッション署名用シークレットの作成
+echo -n "your-random-secret" | gcloud secrets create AUTH_SECRET --data-file=- --project=YOUR_PROJECT_ID
+
+# 許可するメールアドレスの作成
+echo -n "user1@example.com,user2@example.com" | gcloud secrets create ALLOWED_USER_EMAILS --data-file=- --project=YOUR_PROJECT_ID
+
+# Cloud Run サービスアカウントへの権限付与
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
 
 ローカル開発:
 ```bash
