@@ -35,7 +35,7 @@ CORS_ORIGINS = CORS_ORIGINS_STR.split(",") if APP_ENV != "production" else ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=APP_ENV != "production",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

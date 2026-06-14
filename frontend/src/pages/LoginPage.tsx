@@ -1,84 +1,82 @@
-import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/useAuth'
 
-interface LoginLocationState {
-  from?: {
-    pathname?: string
-  }
-}
-
-const LoginPage: React.FC = () => {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-
-  const from = (location.state as LoginLocationState | null)?.from?.pathname || '/'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setIsLoading(true)
-
+    setLoading(true)
     try {
-      await login(password)
-      navigate(from, { replace: true })
+      await login(email, password)
+      navigate('/')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'ログインに失敗しました')
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password') || msg.includes('auth/user-not-found')) {
+        setError('メールアドレスまたはパスワードが正しくありません')
+      } else if (msg.includes('auth/too-many-requests')) {
+        setError('ログイン試行が多すぎます。しばらく待ってから再試行してください')
+      } else if (msg.includes('許可されていません')) {
+        setError('このメールアドレスは許可されていません')
+      } else {
+        setError('ログインに失敗しました')
+      }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            State Machine Simulator
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            パスワードを入力してください
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <input
-                type="password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '2rem', width: '100%', maxWidth: '360px', boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
+        <h1 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', textAlign: 'center' }}>State Machine Simulator</h1>
+        <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1.5rem', textAlign: 'center' }}>ログインしてください</p>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', color: '#333' }}>
+              メールアドレス
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '1rem', boxSizing: 'border-box' }}
+              placeholder="your-email@example.com"
+            />
           </div>
-
-          {error && (
-            <div className="text-red-500 text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                isLoading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              {isLoading ? 'ログイン中...' : 'ログイン'}
-            </button>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', color: '#333' }}>
+              パスワード
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '1rem', boxSizing: 'border-box' }}
+              placeholder="パスワードを入力"
+            />
           </div>
+          {error && <p style={{ color: '#d32f2f', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ width: '100%', padding: '0.75rem', background: loading ? '#aaa' : '#0070f3', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+          >
+            {loading ? 'ログイン中...' : 'ログイン'}
+          </button>
         </form>
       </div>
     </div>
   )
 }
-
-export default LoginPage
