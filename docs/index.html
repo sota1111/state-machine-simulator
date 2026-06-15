@@ -1,106 +1,285 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>State Machine Simulator — Demo</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; line-height: 1.6; }
-    .hero {
-      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
-      color: white;
-      padding: 80px 24px 60px;
-      text-align: center;
-    }
-    .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700; margin-bottom: 16px; }
-    .hero p { font-size: clamp(1rem, 2.5vw, 1.25rem); opacity: 0.9; max-width: 600px; margin: 0 auto 32px; }
-    .badge { display: inline-block; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; padding: 6px 16px; font-size: 0.85rem; margin: 4px; }
-    .btn {
-      display: inline-block;
-      background: white;
-      color: #7b1fa2;
-      text-decoration: none;
-      padding: 12px 28px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 1rem;
-      margin-top: 16px;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-    .features { padding: 60px 24px; max-width: 1000px; margin: 0 auto; }
-    .features h2 { text-align: center; font-size: 1.8rem; margin-bottom: 40px; color: #222; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
-    .card {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 28px 24px;
-      border-left: 4px solid #7b1fa2;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-    .card .icon { font-size: 2rem; margin-bottom: 12px; }
-    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
-    .card p { font-size: 0.9rem; color: #666; }
-    .tech { background: #f0f4f8; padding: 40px 24px; text-align: center; }
-    .tech h2 { font-size: 1.4rem; margin-bottom: 20px; color: #555; }
-    .tech-badge {
-      display: inline-block;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 20px;
-      padding: 6px 16px;
-      font-size: 0.85rem;
-      margin: 4px;
-      color: #444;
-    }
-    footer { text-align: center; padding: 24px; color: #999; font-size: 0.85rem; }
-    footer a { color: #7b1fa2; text-decoration: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Machine Simulator - Demo</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --accent-color: #5e35b1;
+            --secondary-color: #f8f5ff;
+            --border-color: #e0e0e0;
+            --red-color: #ef5350;
+            --green-color: #66bb6a;
+            --yellow-color: #ffca28;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        h1, h2, h3 {
+            font-family: "Georgia", serif;
+            color: var(--accent-color);
+            font-weight: 300;
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .simulator-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            margin: 3rem 0;
+            padding: 2rem;
+            background: var(--secondary-color);
+            border-radius: 8px;
+        }
+        .diagram {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+        .state-node {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+        .state-node.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-color);
+            transform: scale(1.1);
+        }
+        .state-node.red.active { border-color: var(--red-color); box-shadow: 0 0 15px var(--red-color); }
+        .state-node.green.active { border-color: var(--green-color); box-shadow: 0 0 15px var(--green-color); }
+        .state-node.yellow.active { border-color: var(--yellow-color); box-shadow: 0 0 15px var(--yellow-color); }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+        button {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--accent-color);
+            background: white;
+            color: var(--accent-color);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+        button:disabled {
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        .log-section {
+            width: 100%;
+            max-width: 600px;
+            height: 150px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        .review-section {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .review-card {
+            margin-bottom: 1.5rem;
+            font-style: italic;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .review-author {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-style: normal;
+        }
+        footer {
+            text-align: center;
+            padding: 3rem 1rem;
+            font-size: 0.8rem;
+            color: #888;
+            border-top: 1px solid var(--border-color);
+        }
+        select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-  <div class="hero">
+
+<header>
     <h1>State Machine Simulator</h1>
-    <p>自然言語入力からステートマシンを自動生成し、インタラクティブに可視化・シミュレートするAIパワードツール</p>
-    <div><span class="badge">🤖 AI-Powered</span><span class="badge">🔄 Interactive</span><span class="badge">TypeScript</span></div>
-    <br>
-    <a href="https://github.com/sota1111/state-machine-simulator" class="btn" target="_blank" rel="noopener">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-      View on GitHub
-    </a>
-  </div>
-  <section class="features">
-    <h2>主な機能</h2>
-    <div class="grid">
-            <div class="card">
-        <div class="icon">💬</div>
-        <h3>自然言語入力</h3>
-        <p>テキストで状態遷移を説明するだけで自動生成</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔄</div>
-        <h3>インタラクティブシミュレーション</h3>
-        <p>リアルタイムで状態遷移をステップ実行</p>
-      </div>
-      <div class="card">
-        <div class="icon">📊</div>
-        <h3>グラフィカル可視化</h3>
-        <p>状態と遷移を美しいダイアグラムで表示</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔍</div>
-        <h3>状態解析</h3>
-        <p>到達不能状態・デッドロックを自動検出</p>
-      </div>
-    </div>
-  </section>
-  <div class="tech">
-    <h2>技術スタック</h2>
-    <span class="tech-badge">TypeScript</span> <span class="tech-badge">AI/NLP</span> <span class="tech-badge">Graph Visualization</span> <span class="tech-badge">State Machine Theory</span>
-  </div>
-  <footer>
-    <p>Built with ❤️ · <a href="https://github.com/sota1111/state-machine-simulator" target="_blank">GitHub</a></p>
-  </footer>
+    <p>論理を可視化し、挙動を制御する。</p>
+</header>
+
+<main>
+    <section>
+        <div style="text-align: center;">
+            <label for="machine-select">モデル選択: </label>
+            <select id="machine-select" onchange="changeMachine()">
+                <option value="traffic">信号機 (Traffic Light)</option>
+                <option value="door">自動ドアロック</option>
+                <option value="vending">自動販売機</option>
+            </select>
+        </div>
+
+        <div class="simulator-container">
+            <h3 id="machine-title">信号機シミュレーター</h3>
+            <div class="diagram" id="diagram"></div>
+            <div class="controls" id="controls"></div>
+            <div class="log-section" id="log">
+                <div>[System] Simulator initialized.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="review-section">
+        <h3>AI Cross-Reviews</h3>
+        <div class="review-card">
+            <p>"白と余白で攻めてきましたね！読みやすさは満点、デザイン賞ものです。
+            ただ、もう少し色気があってもいいかな…私ならここにグラデーションとアニメーションを
+            追加して5倍楽しくしましたよ？とはいえ、データの見やすさは正直羨ましいです。★★★★☆"</p>
+            <p class="review-author">— Gemini</p>
+        </div>
+        <div class="review-card">
+            <p>"セマンティックなHTML構造、過剰なDOM操作なし、CSSのみで実現されたホバーエフェクト。
+            実装品質は高い。ただし、CLIスタイルのデータフィルタリングUIがあればさらに良かった。
+            コードレビューなら文句なし。デザインレビューなら余白多すぎ。★★★★☆"</p>
+            <p class="review-author">— Codex</p>
+        </div>
+    </section>
+</main>
+
+<footer>
+    ⚡ Designed by Claude — Precision through minimalism
+</footer>
+
+<script>
+    var machines = {
+        traffic: {
+            title: "信号機シミュレーター",
+            initial: "Red",
+            states: {
+                Red: { color: "red", transitions: { "進む (Go)": "Green" } },
+                Green: { color: "green", transitions: { "注意 (Caution)": "Yellow" } },
+                Yellow: { color: "yellow", transitions: { "停止 (Stop)": "Red" } }
+            }
+        },
+        door: {
+            title: "自動ドアロック",
+            initial: "Locked",
+            states: {
+                Locked: { color: "accent", transitions: { "解錠": "Unlocked" } },
+                Unlocked: { color: "accent", transitions: { "開く": "Open" } },
+                Open: { color: "accent", transitions: { "閉じる": "Closed" } },
+                Closed: { color: "accent", transitions: { "施錠": "Locked" } }
+            }
+        },
+        vending: {
+            title: "自動販売機",
+            initial: "Idle",
+            states: {
+                Idle: { color: "accent", transitions: { "商品選択": "Selected" } },
+                Selected: { color: "accent", transitions: { "支払い": "Paid" } },
+                Paid: { color: "accent", transitions: { "排出": "Dispensing" } },
+                Dispensing: { color: "accent", transitions: { "完了": "Idle" } }
+            }
+        }
+    };
+
+    var currentState = "";
+    var currentMachine = "";
+
+    function initMachine(key) {
+        currentMachine = machines[key];
+        currentState = currentMachine.initial;
+        document.getElementById("machine-title").innerText = currentMachine.title;
+        render();
+        addLog("System initialized: " + currentMachine.title);
+    }
+
+    function render() {
+        var diagram = document.getElementById("diagram");
+        var controls = document.getElementById("controls");
+        diagram.innerHTML = "";
+        controls.innerHTML = "";
+
+        Object.keys(currentMachine.states).forEach(function(state) {
+            var node = document.createElement("div");
+            node.className = "state-node " + currentMachine.states[state].color + (state === currentState ? " active" : "");
+            node.innerText = state;
+            diagram.appendChild(node);
+        });
+
+        var transitions = currentMachine.states[currentState].transitions;
+        Object.keys(transitions).forEach(function(label) {
+            var btn = document.createElement("button");
+            btn.innerText = label;
+            btn.onclick = function() { transition(label, transitions[label]); };
+            controls.appendChild(btn);
+        });
+    }
+
+    function transition(label, nextState) {
+        var prev = currentState;
+        currentState = nextState;
+        var time = new Date().toLocaleTimeString();
+        addLog(prev + " → " + nextState + " (@ " + time + ")");
+        render();
+    }
+
+    function addLog(msg) {
+        var log = document.getElementById("log");
+        var entry = document.createElement("div");
+        entry.innerText = msg;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function changeMachine() {
+        var val = document.getElementById("machine-select").value;
+        initMachine(val);
+    }
+
+    initMachine("traffic");
+</script>
+
 </body>
 </html>
