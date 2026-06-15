@@ -131,7 +131,7 @@ docker-compose up
 
 - [ ] 手動での状態遷移モデル作成UI（フォーム入力）
 - [ ] モデルのエクスポート機能（JSON / PlantUML / Mermaid形式）
-- [ ] ユーザー認証・マルチユーザー対応
+- [x] ユーザー認証・マルチユーザー対応
 - [ ] 状態遷移テストケース自動生成
 - [ ] Webhook通知機能
 - [ ] 複数モデルの比較機能
@@ -255,6 +255,10 @@ bash scripts/gcp/deploy-service.sh
 | `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
 | `LOG_LEVEL` | ログレベル | No | `INFO` |
 | `VITE_FIREBASE_API_KEY` | Firebase API Key | Yes | - |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain | Yes | - |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase Project ID | Yes | - |
+| `VITE_FIREBASE_APP_ID` | Firebase App ID | Yes | - |
+| `ALLOWED_USER_EMAILS` | 許可するメールアドレス（カンマ区切り） | Yes | - |
 | `AUTH_SECRET` | セッション署名用シークレット | Yes | - |
 
 ## 認証 (Authentication)
@@ -411,38 +415,3 @@ docker run -p 8080:8080 state-machine-simulator-frontend
 - 実際の `.env` ファイルは Git 管理対象外 (`.gitignore` 設定済み)
 - API キーは Cloud Run の環境変数設定または Secret Manager で管理してください
 
-## Cloud Run へのデプロイ（試験）
-
-### 前提条件
-
-- `gcloud auth login` 完了済み
-- `gcloud auth application-default login` 完了済み
-- GCP プロジェクトで必要な API が有効になっていること
-  ```bash
-  GCP_PROJECT_ID=your-project-id bash scripts/gcp/enable-apis.sh
-  ```
-
-### 試験デプロイ（APP_ENV=local、Firestore不要）
-
-```bash
-GCP_PROJECT_ID=your-project-id \
-AUTH_PASSWORD=your-password \
-JWT_SECRET=your-jwt-secret \
-bash scripts/gcp/deploy-cloudrun-trial.sh
-```
-
-### 環境変数（試験デプロイ用）
-
-| 変数名 | 必須 | 説明 |
-|--------|------|------|
-| `GCP_PROJECT_ID` | Yes | GCPプロジェクトID |
-| `AUTH_PASSWORD` | Yes | アプリアクセスパスワード |
-| `JWT_SECRET` | Yes | JWT署名シークレット（長いランダム文字列推奨） |
-| `REGION` | No | Cloud Runリージョン（デフォルト: asia-northeast1） |
-
-### 注意事項
-
-- 試験デプロイは `APP_ENV=local`（SQLite使用）で動作し、Firestoreは不要です
-- `gcloud builds submit` を使うためローカル Docker は不要です
-- Cloud Run サービスは `--allow-unauthenticated`（公開アクセス可）で作成されます
-- 本番デプロイは `scripts/gcp/deploy-service.sh` を使用してください
