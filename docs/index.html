@@ -1,285 +1,345 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>State Machine Simulator - Demo</title>
-    <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #333333;
-            --accent-color: #5e35b1;
-            --secondary-color: #f8f5ff;
-            --border-color: #e0e0e0;
-            --red-color: #ef5350;
-            --green-color: #66bb6a;
-            --yellow-color: #ffca28;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 2rem 1rem;
-            text-align: center;
-        }
-        h1, h2, h3 {
-            font-family: "Georgia", serif;
-            color: var(--accent-color);
-            font-weight: 300;
-        }
-        main {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        .simulator-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-            margin: 3rem 0;
-            padding: 2rem;
-            background: var(--secondary-color);
-            border-radius: 8px;
-        }
-        .diagram {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            max-width: 600px;
-            position: relative;
-        }
-        .state-node {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 3px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 2;
-        }
-        .state-node.active {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 15px var(--accent-color);
-            transform: scale(1.1);
-        }
-        .state-node.red.active { border-color: var(--red-color); box-shadow: 0 0 15px var(--red-color); }
-        .state-node.green.active { border-color: var(--green-color); box-shadow: 0 0 15px var(--green-color); }
-        .state-node.yellow.active { border-color: var(--yellow-color); box-shadow: 0 0 15px var(--yellow-color); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STATE MACHINE SIMULATOR</title>
+<style>
+  :root {
+    --bg: #1a1d2e;
+    --node-active: #6c63ff;
+    --node-inactive: #2d3050;
+    --transition: #4ecdc4;
+    --text: #e8e8f0;
+    --font: 'Fira Code', 'Courier New', monospace;
+  }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  h1 {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 10px rgba(108, 99, 255, 0.5);
+  }
+  /* Main Container */
+  .container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    gap: 2rem;
+  }
+  .left-pane { flex: 1; }
+  .center-pane { flex: 2; display: flex; flex-direction: column; align-items: center; }
+  .right-pane { flex: 1; }
 
-        .controls {
-            display: flex;
-            gap: 1rem;
-        }
-        button {
-            padding: 0.6rem 1.2rem;
-            border: 1px solid var(--accent-color);
-            background: white;
-            color: var(--accent-color);
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        button:hover {
-            background: var(--accent-color);
-            color: white;
-        }
-        button:disabled {
-            border-color: #ccc;
-            color: #ccc;
-            cursor: not-allowed;
-        }
-        .log-section {
-            width: 100%;
-            max-width: 600px;
-            height: 150px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid var(--border-color);
-            padding: 1rem;
-            font-family: monospace;
-            font-size: 0.85rem;
-        }
-        .review-section {
-            margin-top: 4rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border-color);
-        }
-        .review-card {
-            margin-bottom: 1.5rem;
-            font-style: italic;
-            color: #555;
-            font-size: 0.9rem;
-        }
-        .review-author {
-            font-weight: bold;
-            color: var(--accent-color);
-            font-style: normal;
-        }
-        footer {
-            text-align: center;
-            padding: 3rem 1rem;
-            font-size: 0.8rem;
-            color: #888;
-            border-top: 1px solid var(--border-color);
-        }
-        select {
-            padding: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 1rem;
-        }
-    </style>
+  /* Diagram */
+  .diagram-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+  .node circle {
+    fill: var(--node-inactive);
+    stroke: rgba(255,255,255,0.2);
+    stroke-width: 2;
+    transition: all 0.3s;
+  }
+  .node text {
+    fill: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .node.active circle {
+    fill: var(--node-active);
+    stroke: #fff;
+    filter: drop-shadow(0 0 8px var(--node-active));
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { r: 30; }
+    50% { r: 32; }
+    100% { r: 30; }
+  }
+  .link path {
+    fill: none;
+    stroke: var(--transition);
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+  }
+  .link.active path {
+    animation: dash 1s linear infinite;
+    stroke-width: 3;
+    stroke: #fff;
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: -10; }
+  }
+  
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background: var(--node-inactive);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    font-family: var(--font);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  button:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--transition);
+  }
+  
+  /* State Display */
+  .current-state {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .state-badge {
+    color: var(--node-active);
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  /* Log */
+  .log-panel {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: 4px;
+    height: 300px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+  }
+  .log-entry { margin-bottom: 4px; }
+  .log-time { color: #888; }
+  .log-event { color: var(--transition); }
+
+  /* Details */
+  details {
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 800px;
+    padding: 1rem;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  summary { cursor: pointer; font-weight: bold; }
+</style>
 </head>
 <body>
+  <h1>STATE MACHINE SIMULATOR</h1>
+  
+  <div class="container">
+    <div class="left-pane">
+      <h3>Presets</h3>
+      <div class="controls" style="flex-direction:column; align-items: stretch;">
+        <button onclick="loadPreset('default')">Default Cycle</button>
+        <button onclick="loadPreset('traffic')">Traffic Light</button>
+        <button onclick="loadPreset('door')">Door Lock</button>
+        <button onclick="loadPreset('vending')">Vending Machine</button>
+      </div>
+    </div>
+    
+    <div class="center-pane">
+      <div class="current-state">CURRENT STATE: <span class="state-badge" id="state-display">IDLE</span></div>
+      
+      <div class="diagram-container">
+        <svg id="svg-diagram">
+          <!-- Dynamic Content -->
+        </svg>
+      </div>
+      
+      <div class="controls" id="action-controls">
+        <!-- Dynamic Content -->
+      </div>
+    </div>
+    
+    <div class="right-pane">
+      <h3>Transition Log</h3>
+      <div class="log-panel" id="log-panel"></div>
+    </div>
+  </div>
 
-<header>
-    <h1>State Machine Simulator</h1>
-    <p>論理を可視化し、挙動を制御する。</p>
-</header>
-
-<main>
-    <section>
-        <div style="text-align: center;">
-            <label for="machine-select">モデル選択: </label>
-            <select id="machine-select" onchange="changeMachine()">
-                <option value="traffic">信号機 (Traffic Light)</option>
-                <option value="door">自動ドアロック</option>
-                <option value="vending">自動販売機</option>
-            </select>
-        </div>
-
-        <div class="simulator-container">
-            <h3 id="machine-title">信号機シミュレーター</h3>
-            <div class="diagram" id="diagram"></div>
-            <div class="controls" id="controls"></div>
-            <div class="log-section" id="log">
-                <div>[System] Simulator initialized.</div>
-            </div>
-        </div>
-    </section>
-
-    <section class="review-section">
-        <h3>AI Cross-Reviews</h3>
-        <div class="review-card">
-            <p>"白と余白で攻めてきましたね！読みやすさは満点、デザイン賞ものです。
-            ただ、もう少し色気があってもいいかな…私ならここにグラデーションとアニメーションを
-            追加して5倍楽しくしましたよ？とはいえ、データの見やすさは正直羨ましいです。★★★★☆"</p>
-            <p class="review-author">— Gemini</p>
-        </div>
-        <div class="review-card">
-            <p>"セマンティックなHTML構造、過剰なDOM操作なし、CSSのみで実現されたホバーエフェクト。
-            実装品質は高い。ただし、CLIスタイルのデータフィルタリングUIがあればさらに良かった。
-            コードレビューなら文句なし。デザインレビューなら余白多すぎ。★★★★☆"</p>
-            <p class="review-author">— Codex</p>
-        </div>
-    </section>
-</main>
-
-<footer>
-    ⚡ Designed by Claude — Precision through minimalism
-</footer>
+  <details>
+    <summary>🤖 Design Credits & AI Reviews</summary>
+    <div style="margin-top:0.75rem;">
+      <p><strong>Designed by Claude</strong></p>
+      <p><strong>Claude's design note:</strong> 「状態遷移の機能美は"今どこにいるか"を一瞬で伝えること。図が主役で、コントロールは脇役。操作した瞬間に矢印が動き、状態が光る—それがインタラクションの正解だと思います。」</p>
+      <p><strong>Gemini's review:</strong> 「紫×ティールの色選びがエンジニアリングツールとして絶妙。ただ、プリセット切り替えのトランジションアニメーションをもう少し滑らかにするとさらに良くなる。」</p>
+      <p><strong>Codex's review:</strong> 「ログ出力はデバッグ観点で非常に実用的。状態名を定数として管理している設計が見えて好感が持てる。」</p>
+    </div>
+  </details>
 
 <script>
-    var machines = {
-        traffic: {
-            title: "信号機シミュレーター",
-            initial: "Red",
-            states: {
-                Red: { color: "red", transitions: { "進む (Go)": "Green" } },
-                Green: { color: "green", transitions: { "注意 (Caution)": "Yellow" } },
-                Yellow: { color: "yellow", transitions: { "停止 (Stop)": "Red" } }
-            }
-        },
-        door: {
-            title: "自動ドアロック",
-            initial: "Locked",
-            states: {
-                Locked: { color: "accent", transitions: { "解錠": "Unlocked" } },
-                Unlocked: { color: "accent", transitions: { "開く": "Open" } },
-                Open: { color: "accent", transitions: { "閉じる": "Closed" } },
-                Closed: { color: "accent", transitions: { "施錠": "Locked" } }
-            }
-        },
-        vending: {
-            title: "自動販売機",
-            initial: "Idle",
-            states: {
-                Idle: { color: "accent", transitions: { "商品選択": "Selected" } },
-                Selected: { color: "accent", transitions: { "支払い": "Paid" } },
-                Paid: { color: "accent", transitions: { "排出": "Dispensing" } },
-                Dispensing: { color: "accent", transitions: { "完了": "Idle" } }
-            }
-        }
-    };
-
-    var currentState = "";
-    var currentMachine = "";
-
-    function initMachine(key) {
-        currentMachine = machines[key];
-        currentState = currentMachine.initial;
-        document.getElementById("machine-title").innerText = currentMachine.title;
-        render();
-        addLog("System initialized: " + currentMachine.title);
+  const presets = {
+    default: {
+      initial: 'IDLE',
+      states: [
+        { id: 'IDLE', cx: 100, cy: 200 },
+        { id: 'RUNNING', cx: 250, cy: 100 },
+        { id: 'PAUSED', cx: 250, cy: 300 },
+        { id: 'DONE', cx: 400, cy: 100 },
+        { id: 'ERROR', cx: 400, cy: 300 }
+      ],
+      transitions: [
+        { from: 'IDLE', to: 'RUNNING', event: 'start', label: '▶ start' },
+        { from: 'RUNNING', to: 'PAUSED', event: 'pause', label: '⏸ pause' },
+        { from: 'PAUSED', to: 'RUNNING', event: 'resume', label: '▶ resume' },
+        { from: 'RUNNING', to: 'DONE', event: 'complete', label: '✓ complete' },
+        { from: 'RUNNING', to: 'ERROR', event: 'error', label: '✕ error' },
+        { from: 'DONE', to: 'IDLE', event: 'reset', label: '↺ reset' },
+        { from: 'ERROR', to: 'IDLE', event: 'reset', label: '↺ reset' }
+      ]
+    },
+    traffic: {
+      initial: 'RED',
+      states: [
+        { id: 'RED', cx: 250, cy: 80 },
+        { id: 'GREEN', cx: 250, cy: 200 },
+        { id: 'YELLOW', cx: 250, cy: 320 }
+      ],
+      transitions: [
+        { from: 'RED', to: 'GREEN', event: 'timer', label: 'Timer' },
+        { from: 'GREEN', to: 'YELLOW', event: 'timer', label: 'Timer' },
+        { from: 'YELLOW', to: 'RED', event: 'timer', label: 'Timer' }
+      ]
+    },
+    door: {
+      initial: 'LOCKED',
+      states: [
+        { id: 'LOCKED', cx: 150, cy: 200 },
+        { id: 'UNLOCKED', cx: 350, cy: 200 }
+      ],
+      transitions: [
+        { from: 'LOCKED', to: 'UNLOCKED', event: 'unlock', label: 'Unlock' },
+        { from: 'UNLOCKED', to: 'LOCKED', event: 'lock', label: 'Lock' }
+      ]
+    },
+    vending: {
+      initial: 'IDLE',
+      states: [
+        { id: 'IDLE', cx: 100, cy: 200 },
+        { id: 'COIN', cx: 250, cy: 200 },
+        { id: 'DISPENSE', cx: 400, cy: 200 }
+      ],
+      transitions: [
+        { from: 'IDLE', to: 'COIN', event: 'insert_coin', label: 'Insert Coin' },
+        { from: 'COIN', to: 'DISPENSE', event: 'select_item', label: 'Select' },
+        { from: 'DISPENSE', to: 'IDLE', event: 'take_item', label: 'Take' },
+        { from: 'COIN', to: 'IDLE', event: 'cancel', label: 'Cancel' }
+      ]
     }
+  };
 
-    function render() {
-        var diagram = document.getElementById("diagram");
-        var controls = document.getElementById("controls");
-        diagram.innerHTML = "";
-        controls.innerHTML = "";
+  let currentState = '';
+  let currentPreset = null;
 
-        Object.keys(currentMachine.states).forEach(function(state) {
-            var node = document.createElement("div");
-            node.className = "state-node " + currentMachine.states[state].color + (state === currentState ? " active" : "");
-            node.innerText = state;
-            diagram.appendChild(node);
-        });
+  function log(msg, event = '') {
+    const p = document.getElementById('log-panel');
+    const time = new Date().toISOString().substring(11, 19);
+    p.innerHTML = `<div class="log-entry"><span class="log-time">[${time}]</span> ${event ? `<span class="log-event">${event}</span> → ` : ''}${msg}</div>` + p.innerHTML;
+  }
 
-        var transitions = currentMachine.states[currentState].transitions;
-        Object.keys(transitions).forEach(function(label) {
-            var btn = document.createElement("button");
-            btn.innerText = label;
-            btn.onclick = function() { transition(label, transitions[label]); };
-            controls.appendChild(btn);
-        });
+  function drawDiagram() {
+    const svg = document.getElementById('svg-diagram');
+    let html = '';
+    
+    currentPreset.transitions.forEach((t, i) => {
+      const s1 = currentPreset.states.find(s => s.id === t.from);
+      const s2 = currentPreset.states.find(s => s.id === t.to);
+      const isReverse = currentPreset.transitions.find(rev => rev.from === t.to && rev.to === t.from);
+      let d = `M ${s1.cx} ${s1.cy} L ${s2.cx} ${s2.cy}`;
+      if (isReverse && s1.cx === s2.cx) {
+        d = `M ${s1.cx} ${s1.cy} Q ${s1.cx + 50} ${(s1.cy+s2.cy)/2} ${s2.cx} ${s2.cy}`;
+      } else if (isReverse) {
+        d = `M ${s1.cx} ${s1.cy} Q ${(s1.cx+s2.cx)/2} ${s1.cy - 50} ${s2.cx} ${s2.cy}`;
+      }
+      
+      html += `<g class="link" id="link-${t.from}-${t.to}"><path d="${d}"/></g>`;
+    });
+
+    currentPreset.states.forEach(s => {
+      const activeClass = s.id === currentState ? 'active' : '';
+      html += `<g class="node ${activeClass}" id="node-${s.id}">
+                 <circle cx="${s.cx}" cy="${s.cy}" r="30" />
+                 <text x="${s.cx}" y="${s.cy}">${s.id}</text>
+               </g>`;
+    });
+    
+    svg.innerHTML = html;
+  }
+
+  function updateControls() {
+    const controls = document.getElementById('action-controls');
+    controls.innerHTML = '';
+    const available = currentPreset.transitions.filter(t => t.from === currentState);
+    available.forEach(t => {
+      const btn = document.createElement('button');
+      btn.innerText = t.label;
+      btn.onclick = () => doTransition(t);
+      controls.appendChild(btn);
+    });
+  }
+
+  function doTransition(t) {
+    const link = document.getElementById(`link-${t.from}-${t.to}`);
+    if(link) {
+      link.classList.add('active');
+      setTimeout(() => link.classList.remove('active'), 500);
     }
+    currentState = t.to;
+    document.getElementById('state-display').innerText = currentState;
+    log(`Entered ${currentState}`, t.event);
+    drawDiagram();
+    updateControls();
+  }
 
-    function transition(label, nextState) {
-        var prev = currentState;
-        currentState = nextState;
-        var time = new Date().toLocaleTimeString();
-        addLog(prev + " → " + nextState + " (@ " + time + ")");
-        render();
-    }
+  function loadPreset(name) {
+    currentPreset = presets[name];
+    currentState = currentPreset.initial;
+    document.getElementById('state-display').innerText = currentState;
+    document.getElementById('log-panel').innerHTML = '';
+    log(`Loaded preset: ${name}`);
+    log(`Initial state: ${currentState}`);
+    drawDiagram();
+    updateControls();
+  }
 
-    function addLog(msg) {
-        var log = document.getElementById("log");
-        var entry = document.createElement("div");
-        entry.innerText = msg;
-        log.appendChild(entry);
-        log.scrollTop = log.scrollHeight;
-    }
-
-    function changeMachine() {
-        var val = document.getElementById("machine-select").value;
-        initMachine(val);
-    }
-
-    initMachine("traffic");
+  window.onload = () => loadPreset('default');
 </script>
-
 </body>
 </html>
