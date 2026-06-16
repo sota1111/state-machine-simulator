@@ -111,7 +111,7 @@ docker-compose up
 ```
 フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  SQLite
          ↓                               ↓
-   Mermaid.js (状態遷移図)          Anthropic Claude API
+   HTML/SVG (状態遷移図)          Anthropic Claude API
    Recharts (グラフ)                (自然言語解析)
 ```
 
@@ -130,7 +130,7 @@ docker-compose up
 ## 今後追加予定の機能
 
 - [ ] 手動での状態遷移モデル作成UI（フォーム入力）
-- [ ] モデルのエクスポート機能（JSON / PlantUML / Mermaid形式）
+- [ ] モデルのエクスポート機能（JSON / PlantUML形式）
 - [x] ユーザー認証・マルチユーザー対応
 - [ ] 状態遷移テストケース自動生成
 - [ ] Webhook通知機能
@@ -180,7 +180,7 @@ Yellow --[timer_expire]--> Red
 2. http://localhost:5173 を開く
 3. 一覧画面でサンプルデータ3件が表示されることを確認
 4. いずれかのモデルの「詳細」ボタンをクリック
-5. 状態遷移図（Mermaid.js）が表示されることを確認
+5. 状態遷移図（SVG）が表示されることを確認
 6. シミュレーションパネルでイベントボタンをクリックして状態遷移を確認
 7. ダッシュボード画面でグラフが表示されることを確認
 

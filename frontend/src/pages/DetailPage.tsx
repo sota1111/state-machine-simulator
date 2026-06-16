@@ -10,6 +10,7 @@ export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [currentState, setCurrentState] = useState<string | undefined>()
+  const [visitedTransitionIds, setVisitedTransitionIds] = useState<Set<string>>(new Set())
 
   const { data: machine, isLoading: machineLoading } = useQuery({
     queryKey: ['model', id],
@@ -66,13 +67,19 @@ export default function DetailPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h2 className="font-semibold text-gray-700">状態遷移図</h2>
-          <StateDiagram machine={machine} currentState={currentState ?? machine.initial_state} />
+          <StateDiagram
+            machine={machine}
+            currentState={currentState ?? machine.initial_state}
+            visitedTransitionIds={visitedTransitionIds}
+          />
         </div>
 
         <div className="space-y-4">
           <SimulationPanel
             machine={machine}
             onStateChange={setCurrentState}
+            onStep={(transitionId) => setVisitedTransitionIds(prev => new Set(prev).add(transitionId))}
+            onReset={() => setVisitedTransitionIds(new Set())}
           />
           {analysis && <AnalysisPanel analysis={analysis} />}
         </div>
