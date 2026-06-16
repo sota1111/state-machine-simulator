@@ -138,9 +138,9 @@ docker-compose up
 
 ## サンプルシナリオ
 
-起動直後から以下のサンプルデータが利用できます。
+起動直後から以下のサンプルデータが利用できます（※階層状態（parentStates等）を持つ複雑なサンプルは現在未対応です）。
 
-### 1. ログインフロー
+### 1. ログインフロー (Login Flow)
 ```
 Logged Out --[submit_credentials]--> Authenticating
 Authenticating --[auth_success]--> Logged In
@@ -149,7 +149,7 @@ Login Failed --[retry]--> Logged Out
 Logged In --[logout]--> Logged Out
 ```
 
-### 2. 注文フロー
+### 2. 注文フロー (Order Flow)
 ```
 Cart --[proceed_to_checkout]--> Checkout
 Checkout --[submit_payment]--> Payment Processing
@@ -158,11 +158,47 @@ Confirmed --[ship_order]--> Shipped
 Shipped --[deliver_order]--> Delivered
 ```
 
-### 3. 信号機
+### 3. 信号機 (Traffic Light)
 ```
 Red --[timer_expire]--> Green
 Green --[timer_expire]--> Yellow
 Yellow --[timer_expire]--> Red
+```
+
+### 4. ドア (Door)
+```
+閉 --[開ける]--> 開
+開 --[閉める]--> 閉
+```
+
+### 5. 自動販売機 (Vending Machine)
+```
+待機 --[商品選択]--> 選択
+選択 --[コイン投入]--> 支払
+支払 --[確定]--> 排出
+排出 --[完了]--> 待機
+```
+
+### 6. ロボット保守ワークフロー (Robot Maintenance)
+```
+問い合わせ受付 --[分析開始]--> 原因分析
+原因分析 --[ベンダー依頼]--> ベンダー対応
+原因分析 --[内部修理]--> 自社保守対応
+... (他)
+```
+
+### 7. 半導体製造装置 (Semiconductor Equipment)
+```
+電源投入 --[起動]--> 初期化中 --[初期化完了]--> 待機
+待機 --[レシピ選択]--> レシピ設定 --[開始]--> 搬送中
+... (他)
+```
+
+### 8. SaaS営業フロー (SaaS Sales)
+```
+リード獲得 --[メール送信]--> コンタクト済み
+コンタクト済み --[商談セット]--> ヒアリング中
+... (他)
 ```
 
 ## 動作確認手順
@@ -171,14 +207,22 @@ Yellow --[timer_expire]--> Red
 
 1. バックエンドを起動: `cd backend && uvicorn app.main:app --reload`
 2. http://localhost:8000/docs を開く
-3. `GET /api/models/` を実行してサンプルデータが3件あることを確認
+3. `GET /api/models/` を実行してサンプルデータが8件あることを確認
 4. サンプルモデルのIDをコピーして `GET /api/models/{id}/analysis` を実行
+
+### バックエンド自動テストの実行
+
+```bash
+cd backend
+pip install -r requirements.txt -r requirements-test.txt
+pytest
+```
 
 ### フロントエンドの確認
 
 1. フロントエンドを起動: `cd frontend && npm run dev`
 2. http://localhost:5173 を開く
-3. 一覧画面でサンプルデータ3件が表示されることを確認
+3. 一覧画面でサンプルデータ8件が表示されることを確認
 4. いずれかのモデルの「詳細」ボタンをクリック
 5. 状態遷移図（SVG）が表示されることを確認
 6. シミュレーションパネルでイベントボタンをクリックして状態遷移を確認
