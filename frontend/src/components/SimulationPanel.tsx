@@ -6,9 +6,11 @@ import type { StateMachine } from '../types'
 interface Props {
   machine: StateMachine
   onStateChange: (state: string) => void
+  onStep: (transitionId: string, nextState: string) => void
+  onReset: () => void
 }
 
-export default function SimulationPanel({ machine, onStateChange }: Props) {
+export default function SimulationPanel({ machine, onStateChange, onStep, onReset }: Props) {
   const [currentState, setCurrentState] = useState(machine.initial_state)
   const [log, setLog] = useState<string[]>([`初期状態: ${machine.initial_state}`])
   const queryClient = useQueryClient()
@@ -19,9 +21,15 @@ export default function SimulationPanel({ machine, onStateChange }: Props) {
 
   const mutation = useMutation({
     mutationFn: (event: string) => simulateStep(machine.id, { current_state: currentState, event }),
-    onSuccess: (data) => {
+    onSuccess: (data, event) => {
       if (data.success && data.next_state) {
-        setLog(prev => [...prev, `${currentState} --[${data.next_state}]--> ${data.next_state}`])
+        setLog(prev => [...prev, `${currentState} --[${event}]--> ${data.next_state}`])
+        
+        const t = machine.transitions.find(tr => tr.from_state === currentState && tr.event === event)
+        if (t) {
+          onStep(t.id, data.next_state)
+        }
+
         setCurrentState(data.next_state)
         onStateChange(data.next_state)
         queryClient.invalidateQueries({ queryKey: ['history', machine.id] })
@@ -35,6 +43,7 @@ export default function SimulationPanel({ machine, onStateChange }: Props) {
     setCurrentState(machine.initial_state)
     setLog([`リセット → 初期状態: ${machine.initial_state}`])
     onStateChange(machine.initial_state)
+    onReset()
   }
 
   return (
