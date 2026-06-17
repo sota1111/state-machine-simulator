@@ -1,18 +1,70 @@
 import anthropic
 import os
 import logging
+import random
+import time
 
 logger = logging.getLogger(__name__)
 
+PARSE_MAX_RETRIES = int(os.getenv("PARSE_MAX_RETRIES", "3"))
+PARSE_RETRY_BASE_DELAY = float(os.getenv("PARSE_RETRY_BASE_DELAY", "0.5"))
+
 class APIKeyNotConfiguredError(Exception):
     pass
+
+class AIRateLimitError(RuntimeError):
+    pass
+
+class AIServiceUnavailableError(RuntimeError):
+    pass
+
+def _call_with_retry(client, **kwargs):
+    """
+    Call Anthropic API with exponential backoff retry.
+    """
+    for attempt in range(PARSE_MAX_RETRIES + 1):
+        try:
+            return client.messages.create(**kwargs)
+        except (anthropic.RateLimitError,
+                anthropic.APIConnectionError,
+                anthropic.APITimeoutError) as e:
+            if attempt == PARSE_MAX_RETRIES:
+                logger.error(f"AI API retry exhausted after {attempt} retries: {e}")
+                if isinstance(e, anthropic.RateLimitError):
+                    raise AIRateLimitError(
+                        f"AI解析のリクエスト制限に達しました。しばらく待ってから再試行してください。({str(e)})"
+                    )
+                raise AIServiceUnavailableError(
+                    f"AI解析サービスが一時的に利用できません。しばらく待ってから再試行してください。({str(e)})"
+                )
+            
+            delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
+            logger.warning(f"AI API error (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s...")
+            time.sleep(delay)
+            
+        except anthropic.APIStatusError as e:
+            # Retry on 5xx errors
+            if e.status_code >= 500:
+                if attempt == PARSE_MAX_RETRIES:
+                    logger.error(f"AI API retry exhausted (5xx) after {attempt} retries: {e.status_code}")
+                    raise AIServiceUnavailableError(
+                        f"AI解析サービスでサーバーエラーが発生しました({e.status_code})。しばらく待ってから再試行してください。"
+                    )
+                
+                delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
+                logger.warning(f"AI API 5xx error (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e.status_code}. Retrying in {delay:.2f}s...")
+                time.sleep(delay)
+            else:
+                # 4xx errors (except RateLimitError) are not retried
+                logger.error(f"Anthropic API status error: {e.status_code} - {e.message}")
+                raise RuntimeError(f"Claude API error: {e.message}")
 
 def parse_natural_language(text: str) -> dict:
     """
     Parse natural language description into a state machine JSON.
     Returns a dict matching StateMachineCreate schema.
     Raises ValueError on parse failure.
-    Raises RuntimeError on API failure.
+    Raises RuntimeError on API failure (or specialized AI errors).
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -82,7 +134,8 @@ Extract all states, events, and transitions. Follow these rules:
 - Use the create_state_machine tool to return the extracted model"""
     
     try:
-        response = client.messages.create(
+        response = _call_with_retry(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=2048,
             system=system_prompt,
@@ -132,8 +185,12 @@ Extract all states, events, and transitions. Follow these rules:
                 logger.warning(f"Skipping invalid transition: {t}")
         result["transitions"] = valid_transitions
         
+        logger.info(f"Successfully parsed state machine after potential retries")
         return result
         
+    except (AIRateLimitError, AIServiceUnavailableError):
+        # Re-raise specialized errors
+        raise
     except anthropic.APIConnectionError as e:
         logger.error(f"Anthropic API connection error: {e}")
         raise RuntimeError(f"Failed to connect to Claude API: {str(e)}")
