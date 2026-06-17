@@ -1,22 +1,23 @@
 import os
 import hmac
 import hashlib
-from fastapi import APIRouter, Depends, HTTPException, Cookie, status
+import requests
+from fastapi import APIRouter, HTTPException, Cookie, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import firebase_admin
-from firebase_admin import auth as firebase_auth
-
-if not firebase_admin._apps:
-    firebase_admin.initialize_app()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _APP_NAME = "state-machine-simulator"
 
+# Firebase Identity Toolkit REST endpoint for server-side email/password sign-in.
+_SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+_REST_TIMEOUT = 10
 
-class SessionRequest(BaseModel):
-    idToken: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 
 def _compute_token(secret: str) -> str:
@@ -25,9 +26,53 @@ def _compute_token(secret: str) -> str:
     ).hexdigest()
 
 
+def _verify_with_firebase(email: str, password: str, api_key: str) -> str:
+    """Validate email/password server-side via Identity Toolkit REST.
+
+    Returns the authenticated email on success. Raises HTTPException with a
+    user-facing message on failure. The password is never logged.
+    """
+    try:
+        resp = requests.post(
+            _SIGN_IN_URL,
+            params={"key": api_key},
+            json={"email": email, "password": password, "returnSecureToken": True},
+            timeout=_REST_TIMEOUT,
+        )
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="認証サービスに接続できませんでした",
+        )
+
+    if resp.status_code == 200:
+        return resp.json().get("email", email)
+
+    try:
+        error_message = resp.json().get("error", {}).get("message", "")
+    except ValueError:
+        error_message = ""
+
+    if error_message in ("EMAIL_NOT_FOUND", "INVALID_PASSWORD", "INVALID_LOGIN_CREDENTIALS"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="メールアドレスまたはパスワードが正しくありません",
+        )
+    if error_message.startswith("TOO_MANY_ATTEMPTS_TRY_LATER"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="ログイン試行が多すぎます。しばらく待ってから再試行してください",
+        )
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="認証に失敗しました",
+    )
+
+
 @router.post("/session")
-def create_session(request: SessionRequest):
+def create_session(request: LoginRequest):
     auth_secret = os.getenv("AUTH_SECRET")
+    api_key = os.getenv("FIREBASE_API_KEY")
     allowed_emails_str = os.getenv("ALLOWED_USER_EMAILS", "")
     allowed_emails = [e.strip() for e in allowed_emails_str.split(",") if e.strip()]
 
@@ -36,15 +81,13 @@ def create_session(request: SessionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="AUTH_SECRET not configured",
         )
-
-    try:
-        decoded = firebase_auth.verify_id_token(request.idToken)
-        email: str = decoded.get("email", "")
-    except Exception:
+    if not api_key:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Firebase ID token",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="FIREBASE_API_KEY not configured",
         )
+
+    email = _verify_with_firebase(request.email, request.password, api_key)
 
     if allowed_emails and email not in allowed_emails:
         raise HTTPException(

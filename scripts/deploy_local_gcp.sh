@@ -11,8 +11,8 @@ set -euo pipefail
 #
 # または:
 #   GCP_PROJECT_ID=your-project-id \
-#   AUTH_PASSWORD=your-password \
-#   JWT_SECRET=your-jwt-secret \
+#   AUTH_SECRET=your-cookie-signing-secret \
+#   FIREBASE_API_KEY=your-firebase-web-api-key \
 #   bash scripts/deploy_local_gcp.sh
 
 # 必要な環境変数の読み込み（.env が存在すれば）
@@ -30,8 +30,9 @@ ARTIFACT_REPO="${ARTIFACT_REGISTRY_REPOSITORY:-state-machine-registry}"
 IMAGE_NAME_VAR="${IMAGE_NAME:-state-machine-app}"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPO}/${IMAGE_NAME_VAR}"
 
-AUTH_PASSWORD="${AUTH_PASSWORD:?AUTH_PASSWORD is required}"
-JWT_SECRET="${JWT_SECRET:?JWT_SECRET is required}"
+AUTH_SECRET="${AUTH_SECRET:?AUTH_SECRET is required}"
+FIREBASE_API_KEY="${FIREBASE_API_KEY:?FIREBASE_API_KEY is required}"
+ALLOWED_USER_EMAILS="${ALLOWED_USER_EMAILS:-}"
 
 echo "== Cloud Run デプロイ: ${SERVICE_NAME} =="
 echo "Project: ${PROJECT_ID} | Region: ${REGION}"
@@ -78,15 +79,15 @@ gcloud builds submit . \
 echo "--- Cloud Run デプロイ ---"
 
 # Secret Manager: 初回デプロイ前に以下を実行してください
-# echo -n "value" | gcloud secrets create state-machine-auth-password --data-file=- --project=$PROJECT_ID
-# echo -n "value" | gcloud secrets create state-machine-jwt-secret --data-file=- --project=$PROJECT_ID
+# echo -n "value" | gcloud secrets create state-machine-auth-secret --data-file=- --project=$PROJECT_ID
+# echo -n "value" | gcloud secrets create state-machine-firebase-api-key --data-file=- --project=$PROJECT_ID
 # gcloud projects add-iam-policy-binding $PROJECT_ID \
 #   --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
 #   --role="roles/secretmanager.secretAccessor"
 
 gcloud run deploy "${SERVICE_NAME}" \
   --image="${IMAGE}:latest" \
-  --set-secrets="AUTH_PASSWORD=state-machine-auth-password:latest,JWT_SECRET=state-machine-jwt-secret:latest" \
+  --set-secrets="AUTH_SECRET=state-machine-auth-secret:latest,FIREBASE_API_KEY=state-machine-firebase-api-key:latest" \
   --project="${PROJECT_ID}" \
   --region="${REGION}" \
   --platform=managed \
@@ -96,7 +97,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,DATABASE_URL=sqlite:////tmp/app.db" \
+  --set-env-vars="APP_ENV=local,DATABASE_URL=sqlite:////tmp/app.db,ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS}" \
   --allow-unauthenticated \
   --quiet
 
