@@ -2,30 +2,23 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
-import sys
 
 from .dependencies import get_current_user
 from .routers import auth as auth_router
+from .routers import models as models_router
+from .routers import simulate, parse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 APP_ENV = os.getenv("APP_ENV", "local")
 
-# Conditional imports based on environment
-if APP_ENV == "production":
-    from .routers import models_firestore as models_router
-    # In production, we don't use SQLite/SQLAlchemy Base/engine here
-    Base = None
-    SessionLocal = None
-else:
+# Setup based on environment
+if APP_ENV != "production":
     from .database import engine, Base, SessionLocal
-    from .routers import models as models_router
     from .seed import seed_sample_data
     # Create database tables for local development
     Base.metadata.create_all(bind=engine)
-
-from .routers import simulate, parse
 
 app = FastAPI(title="State Machine Simulator API", version="1.0.0")
 
@@ -48,6 +41,7 @@ app.include_router(parse.router, prefix="/api", dependencies=[Depends(get_curren
 @app.on_event("startup")
 async def startup_event():
     if APP_ENV != "production":
+        from .database import SessionLocal
         db = SessionLocal()
         try:
             seed_sample_data(db)
@@ -58,14 +52,6 @@ async def startup_event():
             db.close()
     else:
         logger.info(f"Running in production mode (APP_ENV=production). Skipping SQLite seed.")
-        # Verify Firestore connection
-        try:
-            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            from firestore_client import get_firestore_client
-            get_firestore_client()
-            logger.info("Firestore connection verified")
-        except Exception as e:
-            logger.error(f"Firestore connection failed: {e}")
 
 @app.get("/health")
 def health_check():

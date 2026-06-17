@@ -1,22 +1,31 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getModel, getAnalysis } from '../api'
 import StateDiagram from '../components/StateDiagram'
 import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
+import { useSimulationStore } from '../store/simulationStore'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [currentState, setCurrentState] = useState<string | undefined>()
-  const [visitedTransitionIds, setVisitedTransitionIds] = useState<Set<string>>(new Set())
+  const currentStateFromStore = useSimulationStore(state => state.currentState)
+  const initForMachine = useSimulationStore(state => state.initForMachine)
 
   const { data: machine, isLoading: machineLoading } = useQuery({
     queryKey: ['model', id],
     queryFn: () => getModel(id!),
     enabled: !!id,
   })
+
+  useEffect(() => {
+    if (machine) {
+      initForMachine(machine.initial_state)
+    }
+  }, [machine, initForMachine])
+
+  const currentState = currentStateFromStore ?? machine?.initial_state
 
   const { data: analysis } = useQuery({
     queryKey: ['analysis', id],
@@ -69,17 +78,12 @@ export default function DetailPage() {
           <h2 className="font-semibold text-gray-700">状態遷移図</h2>
           <StateDiagram
             machine={machine}
-            currentState={currentState ?? machine.initial_state}
-            visitedTransitionIds={visitedTransitionIds}
           />
         </div>
 
         <div className="space-y-4">
           <SimulationPanel
             machine={machine}
-            onStateChange={setCurrentState}
-            onStep={(transitionId) => setVisitedTransitionIds(prev => new Set(prev).add(transitionId))}
-            onReset={() => setVisitedTransitionIds(new Set())}
           />
           {analysis && <AnalysisPanel analysis={analysis} />}
         </div>
