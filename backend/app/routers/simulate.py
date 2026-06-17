@@ -1,16 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from typing import List
-from ..database import get_db
-from ..models import StateMachine, SimulationHistory
+from ..dependencies import get_repository
+from ..repositories.base import StateMachineRepository
 from ..schemas import SimulateRequest, SimulateResponse, SimulationHistoryResponse
 from ..services.simulator import simulate_step
 
 router = APIRouter(prefix="/models", tags=["simulation"])
 
 @router.post("/{id}/simulate", response_model=SimulateResponse)
-def simulate(id: str, request: SimulateRequest, db: Session = Depends(get_db)):
-    machine = db.query(StateMachine).filter(StateMachine.id == id, StateMachine.is_deleted == False).first()
+def simulate(id: str, request: SimulateRequest, repo: StateMachineRepository = Depends(get_repository)):
+    machine = repo.get(id)
     if not machine:
         raise HTTPException(status_code=404, detail="State Machine not found")
     
@@ -21,18 +20,14 @@ def simulate(id: str, request: SimulateRequest, db: Session = Depends(get_db)):
     )
     
     # Save to history
-    history = SimulationHistory(
-        machine_id=id,
-        steps=[{
-            "current_state": request.current_state,
-            "event": request.event,
-            "next_state": next_state,
-            "success": success,
-            "message": message
-        }]
-    )
-    db.add(history)
-    db.commit()
+    history_data = {
+        "current_state": request.current_state,
+        "event": request.event,
+        "next_state": next_state,
+        "success": success,
+        "message": message
+    }
+    repo.save_simulation_history(id, history_data)
     
     return SimulateResponse(
         success=success,
@@ -41,9 +36,9 @@ def simulate(id: str, request: SimulateRequest, db: Session = Depends(get_db)):
     )
 
 @router.get("/{id}/history", response_model=List[SimulationHistoryResponse])
-def get_history(id: str, db: Session = Depends(get_db)):
-    machine = db.query(StateMachine).filter(StateMachine.id == id, StateMachine.is_deleted == False).first()
+def get_history(id: str, repo: StateMachineRepository = Depends(get_repository)):
+    machine = repo.get(id)
     if not machine:
         raise HTTPException(status_code=404, detail="State Machine not found")
         
-    return db.query(SimulationHistory).filter(SimulationHistory.machine_id == id).order_by(SimulationHistory.executed_at.desc()).all()
+    return repo.get_simulation_history(id)

@@ -1,10 +1,11 @@
 import os
 import hmac
 import hashlib
+from typing import Iterator
 from fastapi import Cookie, HTTPException, status
+from .repositories.base import StateMachineRepository
 
 _APP_NAME = "state-machine-simulator"
-
 
 def get_current_user(auth_token: str = Cookie(None)) -> str:
     auth_secret = os.getenv("AUTH_SECRET")
@@ -22,3 +23,17 @@ def get_current_user(auth_token: str = Cookie(None)) -> str:
             detail="Invalid session",
         )
     return "authenticated"
+
+def get_repository() -> Iterator[StateMachineRepository]:
+    app_env = os.getenv("APP_ENV", "local")
+    if app_env == "production":
+        from .repositories.firestore_repository import FirestoreStateMachineRepository
+        yield FirestoreStateMachineRepository()
+    else:
+        from .database import SessionLocal
+        from .repositories.sqlite_repository import SQLiteStateMachineRepository
+        db = SessionLocal()
+        try:
+            yield SQLiteStateMachineRepository(db)
+        finally:
+            db.close()
