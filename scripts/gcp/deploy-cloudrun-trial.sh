@@ -6,8 +6,8 @@ set -euo pipefail
 #
 # 使い方:
 #   GCP_PROJECT_ID=your-project-id \
-#   AUTH_PASSWORD=your-password \
-#   JWT_SECRET=your-jwt-secret \
+#   AUTH_SECRET=your-cookie-signing-secret \
+#   FIREBASE_API_KEY=your-firebase-web-api-key \
 #   bash scripts/gcp/deploy-cloudrun-trial.sh
 
 PROJECT_ID="${GCP_PROJECT_ID:?GCP_PROJECT_ID is required}"
@@ -16,8 +16,9 @@ SERVICE_NAME="state-machine-simulator"
 REPO_NAME="state-machine-registry"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}"
 
-AUTH_PASSWORD="${AUTH_PASSWORD:?AUTH_PASSWORD is required}"
-JWT_SECRET="${JWT_SECRET:?JWT_SECRET is required}"
+AUTH_SECRET="${AUTH_SECRET:?AUTH_SECRET is required}"
+FIREBASE_API_KEY="${FIREBASE_API_KEY:?FIREBASE_API_KEY is required}"
+ALLOWED_USER_EMAILS="${ALLOWED_USER_EMAILS:-}"
 
 echo "== Cloud Run 試験デプロイ: ${SERVICE_NAME} =="
 echo "Project: ${PROJECT_ID} | Region: ${REGION}"
@@ -50,7 +51,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,AUTH_PASSWORD=${AUTH_PASSWORD},JWT_SECRET=${JWT_SECRET},DATABASE_URL=sqlite:////tmp/app.db" \
+  --set-env-vars="APP_ENV=local,AUTH_SECRET=${AUTH_SECRET},FIREBASE_API_KEY=${FIREBASE_API_KEY},ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS},DATABASE_URL=sqlite:////tmp/app.db" \
   --allow-unauthenticated \
   --quiet
 
