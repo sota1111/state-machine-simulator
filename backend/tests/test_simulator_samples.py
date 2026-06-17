@@ -5,7 +5,6 @@ from app.services.simulator import simulate_step
 
 @pytest.mark.parametrize("sample", SAMPLE_STATE_MACHINES)
 def test_simulator_with_samples(sample):
-    name = sample["name"]
     transitions_data = sample["transitions"]
     # Convert dict transitions to objects with attribute access for simulator
     transitions = [SimpleNamespace(**t) for t in transitions_data]
