@@ -1,18 +1,18 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { simulateStep } from '../api'
+import { useSimulationStore } from '../store/simulationStore'
 import type { StateMachine } from '../types'
 
 interface Props {
   machine: StateMachine
-  onStateChange: (state: string) => void
-  onStep: (transitionId: string, nextState: string) => void
-  onReset: () => void
 }
 
-export default function SimulationPanel({ machine, onStateChange, onStep, onReset }: Props) {
-  const [currentState, setCurrentState] = useState(machine.initial_state)
-  const [log, setLog] = useState<string[]>([`初期状態: ${machine.initial_state}`])
+export default function SimulationPanel({ machine }: Props) {
+  const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
+  const log = useSimulationStore(state => state.log)
+  const addStep = useSimulationStore(state => state.addStep)
+  const reset = useSimulationStore(state => state.reset)
+  const addLog = useSimulationStore(state => state.addLog)
   const queryClient = useQueryClient()
 
   const availableEvents = machine.transitions
@@ -23,27 +23,22 @@ export default function SimulationPanel({ machine, onStateChange, onStep, onRese
     mutationFn: (event: string) => simulateStep(machine.id, { current_state: currentState, event }),
     onSuccess: (data, event) => {
       if (data.success && data.next_state) {
-        setLog(prev => [...prev, `${currentState} --[${event}]--> ${data.next_state}`])
-        
         const t = machine.transitions.find(tr => tr.from_state === currentState && tr.event === event)
         if (t) {
-          onStep(t.id, data.next_state)
+          addStep(t.id, currentState, event, data.next_state)
+        } else {
+          // Should not happen if transitions are consistent
+          addLog(`${currentState} --[${event}]--> ${data.next_state}`)
         }
-
-        setCurrentState(data.next_state)
-        onStateChange(data.next_state)
         queryClient.invalidateQueries({ queryKey: ['history', machine.id] })
       } else {
-        setLog(prev => [...prev, `エラー: ${data.message}`])
+        addLog(`エラー: ${data.message}`)
       }
     }
   })
 
   const handleReset = () => {
-    setCurrentState(machine.initial_state)
-    setLog([`リセット → 初期状態: ${machine.initial_state}`])
-    onStateChange(machine.initial_state)
-    onReset()
+    reset(machine.initial_state)
   }
 
   return (

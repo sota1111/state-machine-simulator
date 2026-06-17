@@ -1,9 +1,8 @@
+import { useSimulationStore } from '../store/simulationStore'
 import type { StateMachine, State, Transition } from '../types'
 
 interface Props {
   machine: StateMachine
-  currentState?: string
-  visitedTransitionIds?: Set<string>
 }
 
 interface NodePos {
@@ -14,7 +13,10 @@ interface NodePos {
   state: State
 }
 
-export default function StateDiagram({ machine, currentState, visitedTransitionIds }: Props) {
+export default function StateDiagram({ machine }: Props) {
+  const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
+  const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
+  const visitedTransitionIds = new Set(visitedTransitionIdsArr)
   const NODE_WIDTH = 140
   const NODE_HEIGHT = 44
   const COL_GAP = 80
