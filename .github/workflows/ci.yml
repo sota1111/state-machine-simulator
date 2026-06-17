@@ -33,4 +33,9 @@ jobs:
         run: ruff check app tests
 
       - name: Test (pytest)
+        # The app default DATABASE_URL is an absolute dev-container path that does
+        # not exist on the runner; point SQLite at the repo-relative data/ dir
+        # (kept via data/.gitkeep) so the DB file can be created.
+        env:
+          DATABASE_URL: "sqlite:///./data/app.db"
         run: python -m pytest
