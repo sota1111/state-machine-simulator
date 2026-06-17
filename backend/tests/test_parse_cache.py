@@ -3,7 +3,7 @@ import hmac
 import hashlib
 import os
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from app.main import app
 from app.services.cache import parse_cache
 

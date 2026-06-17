@@ -185,7 +185,7 @@ Extract all states, events, and transitions. Follow these rules:
                 logger.warning(f"Skipping invalid transition: {t}")
         result["transitions"] = valid_transitions
         
-        logger.info(f"Successfully parsed state machine after potential retries")
+        logger.info("Successfully parsed state machine after potential retries")
         return result
         
     except (AIRateLimitError, AIServiceUnavailableError):

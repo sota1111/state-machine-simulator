@@ -15,7 +15,7 @@ APP_ENV = os.getenv("APP_ENV", "local")
 
 # Setup based on environment
 if APP_ENV != "production":
-    from .database import engine, Base, SessionLocal
+    from .database import engine, Base
     from .seed import seed_sample_data
     # Create database tables for local development
     Base.metadata.create_all(bind=engine)
@@ -51,7 +51,7 @@ async def startup_event():
         finally:
             db.close()
     else:
-        logger.info(f"Running in production mode (APP_ENV=production). Skipping SQLite seed.")
+        logger.info("Running in production mode (APP_ENV=production). Skipping SQLite seed.")
 
 @app.get("/health")
 def health_check():
