@@ -72,7 +72,7 @@ def _verify_with_firebase(email: str, password: str, api_key: str) -> str:
 @router.post("/session")
 def create_session(request: LoginRequest):
     auth_secret = os.getenv("AUTH_SECRET")
-    api_key = os.getenv("FIREBASE_API_KEY")
+    api_key = os.getenv("FIREBASE_WEB_API_KEY") or os.getenv("FIREBASE_API_KEY")
     allowed_emails_str = os.getenv("ALLOWED_USER_EMAILS", "")
     allowed_emails = [e.strip() for e in allowed_emails_str.split(",") if e.strip()]
 
@@ -84,7 +84,7 @@ def create_session(request: LoginRequest):
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="FIREBASE_API_KEY not configured",
+            detail="FIREBASE_WEB_API_KEY / FIREBASE_API_KEY not configured",
         )
 
     email = _verify_with_firebase(request.email, request.password, api_key)
