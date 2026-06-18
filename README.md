@@ -302,26 +302,22 @@ bash scripts/gcp/deploy-service.sh
 | `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
 | `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
 | `LOG_LEVEL` | ログレベル | No | `INFO` |
-| `VITE_FIREBASE_API_KEY` | Firebase API Key | Yes | - |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain | Yes | - |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase Project ID | Yes | - |
-| `VITE_FIREBASE_APP_ID` | Firebase App ID | Yes | - |
+| `FIREBASE_WEB_API_KEY` | Firebase Web API キー | Yes (優先) | - |
+| `FIREBASE_API_KEY` | Firebase API キー (フォールバック) | No (後方互換) | - |
 | `ALLOWED_USER_EMAILS` | 許可するメールアドレス（カンマ区切り） | Yes | - |
 | `AUTH_SECRET` | セッション署名用シークレット | Yes | - |
 
 ## 認証 (Authentication)
 
-本アプリケーションは、Firebase Authentication を使用したメールアドレス・パスワード認証機能を備えています。
+本アプリケーションは、Firebase Identity Toolkit REST API を利用したサーバーサイド認証機能を備えています。
 
 ### 設定方法
 
 `.env` ファイルに以下の変数を設定してください。
 
 ```env
-VITE_FIREBASE_API_KEY=your-firebase-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_APP_ID=your-firebase-app-id
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key
+# FIREBASE_WEB_API_KEY 未設定時は FIREBASE_API_KEY にフォールバック
 ALLOWED_USER_EMAILS=your-email1@example.com,your-email2@example.com
 AUTH_SECRET=your-random-secret-key
 ```
@@ -339,11 +335,14 @@ AUTH_SECRET=your-random-secret-key
 本番環境（Cloud Run）では機密情報を Secret Manager で管理します。初回デプロイ前に以下のコマンドでシークレットを作成してください。
 
 ```bash
+# Firebase Web API キーの作成
+echo -n "your-firebase-web-api-key" | gcloud secrets create state-machine-firebase-api-key --data-file=- --project=YOUR_PROJECT_ID
+
 # セッション署名用シークレットの作成
-echo -n "your-random-secret" | gcloud secrets create AUTH_SECRET --data-file=- --project=YOUR_PROJECT_ID
+echo -n "your-random-secret" | gcloud secrets create state-machine-auth-secret --data-file=- --project=YOUR_PROJECT_ID
 
 # 許可するメールアドレスの作成
-echo -n "user1@example.com,user2@example.com" | gcloud secrets create ALLOWED_USER_EMAILS --data-file=- --project=YOUR_PROJECT_ID
+echo -n "user1@example.com,user2@example.com" | gcloud secrets create state-machine-allowed-emails --data-file=- --project=YOUR_PROJECT_ID
 
 # Cloud Run サービスアカウントへの権限付与
 gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
@@ -375,12 +374,11 @@ echo -n "your-anthropic-key" | gcloud secrets create ANTHROPIC_API_KEY \
 - **処理**: Docker build → Artifact Registry push → Cloud Run deploy
 - コンテナは **ポート 8080**（Cloud Run のデフォルト）で listen するため、追加のポート設定は不要
 
-Settings → Secrets and variables → Actions で以下の **必須 Secret（7件）** を設定:
+Settings → Secrets and variables → Actions で以下の **必須 Secret（6件）** を設定:
 
 | Secret 名 | 説明 |
 |---|---|
 | `GCP_PROJECT_ID` | GCP プロジェクト ID |
-| `GCP_PROJECT_NUMBER` | GCP プロジェクト番号 |
 | `GCP_REGION` | Cloud Run / Artifact Registry のリージョン（例: `asia-northeast1`） |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Workload Identity Federation プロバイダのリソース名 |
 | `GCP_SERVICE_ACCOUNT` | デプロイ用サービスアカウントのメールアドレス |
