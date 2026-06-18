@@ -51,7 +51,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,AUTH_SECRET=${AUTH_SECRET},FIREBASE_API_KEY=${FIREBASE_API_KEY},ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS},DATABASE_URL=sqlite:////tmp/app.db" \
+  --set-env-vars="APP_ENV=production,AUTH_SECRET=${AUTH_SECRET},FIREBASE_API_KEY=${FIREBASE_API_KEY},ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS},GCP_PROJECT_ID=${PROJECT_ID}" \
   --allow-unauthenticated \
   --quiet
 
