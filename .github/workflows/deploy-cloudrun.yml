@@ -58,4 +58,4 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "APP_ENV=production,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" \
-            --set-secrets "FIREBASE_WEB_API_KEY=state-machine-firebase-api-key:latest,AUTH_SECRET=state-machine-auth-secret:latest,ALLOWED_USER_EMAILS=state-machine-allowed-emails:latest"
+            --set-secrets "FIREBASE_WEB_API_KEY=FIREBASE_API_KEY:latest,AUTH_SECRET=state-machine-auth-secret:latest,ALLOWED_USER_EMAILS=state-machine-allowed-emails:latest"
