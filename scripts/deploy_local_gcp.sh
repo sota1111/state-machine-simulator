@@ -97,7 +97,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --cpu=1 \
   --timeout=300 \
   --concurrency=80 \
-  --set-env-vars="APP_ENV=local,DATABASE_URL=sqlite:////tmp/app.db,ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS}" \
+  --set-env-vars="APP_ENV=production,ALLOWED_USER_EMAILS=${ALLOWED_USER_EMAILS},GCP_PROJECT_ID=${PROJECT_ID}" \
   --allow-unauthenticated \
   --quiet
 

@@ -113,7 +113,7 @@ docker-compose up
 ## アーキテクチャ概要
 
 ```
-フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  SQLite
+フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  SQLite / Firestore
          ↓                               ↓
    HTML/SVG (状態遷移図)          Anthropic Claude API
    Recharts (グラフ)                (自然言語解析)
@@ -121,14 +121,14 @@ docker-compose up
 
 - **フロントエンド**: React 18 + TypeScript + Vite + TanStack Query + Tailwind CSS
 - **バックエンド**: Python 3.11 + FastAPI + SQLAlchemy 2.x
-- **データベース**: SQLite（`backend/data/app.db`）
+- **データベース**: SQLite（`backend/data/app.db`）※SQLite はローカル開発用、本番（Cloud Run, APP_ENV=production）は Firestore。
 - **NLP**: Anthropic Claude API（claude-sonnet-4-6）
 
 ## 制約事項
 
 - 自然言語解析機能（`POST /api/parse`）にはANTHROPIC_API_KEYが必要
 - APIキーなしでも、手動でモデル作成・編集・シミュレーションは可能（現バージョンでは直接API経由）
-- SQLiteはローカル開発用。本番環境ではPostgreSQLへの移行を推奨
+- 本番は Firestore を使用する（SQLiteはローカル開発用）
 - 同時接続数が多い場合はパフォーマンスが低下する可能性がある
 
 ## 今後追加予定の機能
@@ -455,13 +455,7 @@ docker run -p 8080:8080 state-machine-simulator-frontend
 
 ### データ永続化について
 
-現在 SQLite を使用しています。Cloud Run はステートレスなため、本番環境では以下を検討してください:
-
-- **Cloud SQL** (PostgreSQL/MySQL) への移行
-- **Firestore** への移行
-- Cloud Run の起動時に Cloud Storage からDBファイルをマウント
-
-現時点では SQLite のまま開発継続が可能です（実デプロイ時に移行検討）。
+ローカル開発環境では SQLite を使用しますが、本番環境（Cloud Run）では Firestore を使用します。`APP_ENV=production` に設定すると自動的に切り替わり、`GCP_PROJECT_ID` が必須となります。本番環境は `/tmp` SQLite には依存しません。
 
 ### 環境変数
 
