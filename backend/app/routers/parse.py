@@ -3,7 +3,7 @@ import hashlib
 from fastapi import APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
-from ..services.nlp import parse_natural_language, APIKeyNotConfiguredError, AIRateLimitError, AIServiceUnavailableError
+from ..services.nlp import parse_natural_language, APIKeyNotConfiguredError, AIRateLimitError, AIServiceUnavailableError, AIParseError
 from ..services.cache import parse_cache
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,9 @@ async def parse_text(request: ParseRequest):
         raise HTTPException(status_code=429, detail=str(e))
     except AIServiceUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    except AIParseError as e:
+        # AI responded but the result could not be parsed even after retries.
+        raise HTTPException(status_code=502, detail=str(e))
     except APIKeyNotConfiguredError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ValueError as e:

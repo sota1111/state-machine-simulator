@@ -18,6 +18,11 @@ class AIRateLimitError(RuntimeError):
 class AIServiceUnavailableError(RuntimeError):
     pass
 
+class AIParseError(RuntimeError):
+    """Raised when the AI response cannot be parsed into a valid state machine
+    even after exhausting the parse retries."""
+    pass
+
 def _call_with_retry(client, **kwargs):
     """
     Call Anthropic API with exponential backoff retry.
@@ -58,6 +63,50 @@ def _call_with_retry(client, **kwargs):
                 # 4xx errors (except RateLimitError) are not retried
                 logger.error(f"Anthropic API status error: {e.status_code} - {e.message}")
                 raise RuntimeError(f"Claude API error: {e.message}")
+
+def _parse_response(response) -> dict:
+    """
+    Parse and validate a single Anthropic response into a state machine dict.
+    Raises ValueError when the response is structurally invalid / unparseable.
+    """
+    # Find the tool use block
+    tool_use_block = None
+    for block in response.content:
+        if block.type == "tool_use" and block.name == "create_state_machine":
+            tool_use_block = block
+            break
+
+    if not tool_use_block:
+        raise ValueError("Claude did not return a state machine structure")
+
+    result = tool_use_block.input
+
+    # Validate required fields
+    required = ["name", "initial_state", "states", "transitions"]
+    for field in required:
+        if field not in result:
+            raise ValueError(f"Missing required field: {field}")
+
+    if not result.get("states"):
+        raise ValueError("No states extracted from the description")
+
+    # Ensure initial_state is in states (tolerant post-processing, not a failure)
+    state_names = [s["name"] for s in result["states"]]
+    if result["initial_state"] not in state_names:
+        result["initial_state"] = state_names[0]
+        logger.warning(f"initial_state not in states, defaulting to: {state_names[0]}")
+
+    # Validate transitions reference valid states (tolerant post-processing)
+    valid_transitions = []
+    for t in result.get("transitions", []):
+        if t.get("from_state") in state_names and t.get("to_state") in state_names:
+            valid_transitions.append(t)
+        else:
+            logger.warning(f"Skipping invalid transition: {t}")
+    result["transitions"] = valid_transitions
+
+    return result
+
 
 def parse_natural_language(text: str) -> dict:
     """
@@ -133,67 +182,49 @@ Extract all states, events, and transitions. Follow these rules:
 - Identify the initial/starting state
 - Use the create_state_machine tool to return the extracted model"""
     
-    try:
-        response = _call_with_retry(
-            client,
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=system_prompt,
-            tools=tools,
-            tool_choice={"type": "any"},
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Extract the state machine from this description:\n\n{text}"
-                }
-            ]
-        )
-        
-        # Find the tool use block
-        tool_use_block = None
-        for block in response.content:
-            if block.type == "tool_use" and block.name == "create_state_machine":
-                tool_use_block = block
-                break
-        
-        if not tool_use_block:
-            raise ValueError("Claude did not return a state machine structure")
-        
-        result = tool_use_block.input
-        
-        # Validate required fields
-        required = ["name", "initial_state", "states", "transitions"]
-        for field in required:
-            if field not in result:
-                raise ValueError(f"Missing required field: {field}")
-        
-        if not result.get("states"):
-            raise ValueError("No states extracted from the description")
-        
-        # Ensure initial_state is in states
-        state_names = [s["name"] for s in result["states"]]
-        if result["initial_state"] not in state_names:
-            result["initial_state"] = state_names[0]
-            logger.warning(f"initial_state not in states, defaulting to: {state_names[0]}")
-        
-        # Validate transitions reference valid states
-        valid_transitions = []
-        for t in result.get("transitions", []):
-            if t.get("from_state") in state_names and t.get("to_state") in state_names:
-                valid_transitions.append(t)
-            else:
-                logger.warning(f"Skipping invalid transition: {t}")
-        result["transitions"] = valid_transitions
-        
-        logger.info("Successfully parsed state machine after potential retries")
-        return result
-        
-    except (AIRateLimitError, AIServiceUnavailableError):
-        # Re-raise specialized errors
-        raise
-    except anthropic.APIConnectionError as e:
-        logger.error(f"Anthropic API connection error: {e}")
-        raise RuntimeError(f"Failed to connect to Claude API: {str(e)}")
-    except anthropic.APIStatusError as e:
-        logger.error(f"Anthropic API status error: {e.status_code} - {e.message}")
-        raise RuntimeError(f"Claude API error: {e.message}")
+    # Retry loop covering "API call succeeded but response is unparseable / structurally
+    # invalid". Transport-level errors are already retried inside _call_with_retry; here we
+    # additionally retry parse failures with the same exponential backoff so a single bad
+    # generation does not surface as a hard failure to the user.
+    for attempt in range(PARSE_MAX_RETRIES + 1):
+        try:
+            response = _call_with_retry(
+                client,
+                model="claude-sonnet-4-6",
+                max_tokens=2048,
+                system=system_prompt,
+                tools=tools,
+                tool_choice={"type": "any"},
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Extract the state machine from this description:\n\n{text}"
+                    }
+                ]
+            )
+
+            result = _parse_response(response)
+            logger.info("Successfully parsed state machine after potential retries")
+            return result
+
+        except (AIRateLimitError, AIServiceUnavailableError):
+            # Re-raise specialized transport errors (already retried/exhausted upstream)
+            raise
+        except ValueError as e:
+            # Unparseable / structurally invalid AI response — retry with backoff.
+            if attempt == PARSE_MAX_RETRIES:
+                logger.error(f"AI parse failed after {attempt} retries: {e}")
+                raise AIParseError(
+                    "AI解析結果を読み取れませんでした。お手数ですが入力内容を変えて再試行してください。"
+                )
+            delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
+            logger.warning(
+                f"AI parse failed (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s..."
+            )
+            time.sleep(delay)
+        except anthropic.APIConnectionError as e:
+            logger.error(f"Anthropic API connection error: {e}")
+            raise RuntimeError(f"Failed to connect to Claude API: {str(e)}")
+        except anthropic.APIStatusError as e:
+            logger.error(f"Anthropic API status error: {e.status_code} - {e.message}")
+            raise RuntimeError(f"Claude API error: {e.message}")

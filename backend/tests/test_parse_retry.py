@@ -4,7 +4,7 @@ import hashlib
 import os
 from unittest.mock import MagicMock, patch
 import anthropic
-from app.services.nlp import parse_natural_language, AIRateLimitError, AIServiceUnavailableError
+from app.services.nlp import parse_natural_language, AIRateLimitError, AIServiceUnavailableError, AIParseError
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -126,6 +126,79 @@ def test_parse_no_retry_on_400_error(mock_anthropic, mock_sleep):
     assert "Claude API error" in str(excinfo.value)
     assert mock_client.messages.create.call_count == 1
     assert mock_sleep.call_count == 0
+
+def _make_valid_response():
+    mock_response = MagicMock()
+    mock_tool_use = MagicMock()
+    mock_tool_use.type = "tool_use"
+    mock_tool_use.name = "create_state_machine"
+    mock_tool_use.input = {
+        "name": "Test SM",
+        "initial_state": "S1",
+        "states": [{"name": "S1"}],
+        "transitions": []
+    }
+    mock_response.content = [mock_tool_use]
+    return mock_response
+
+
+def _make_unparseable_response():
+    # No tool_use block -> _parse_response raises ValueError
+    mock_response = MagicMock()
+    mock_other = MagicMock()
+    mock_other.type = "text"
+    mock_other.name = "not_a_tool"
+    mock_response.content = [mock_other]
+    return mock_response
+
+
+def test_parse_retry_success_after_parse_failure(mock_anthropic, mock_sleep):
+    # 1st response is unparseable, 2nd is valid -> should retry and succeed
+    mock_client = mock_anthropic.return_value
+    mock_client.messages.create.side_effect = [
+        _make_unparseable_response(),
+        _make_valid_response(),
+    ]
+
+    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fake_key"}):
+        result = parse_natural_language("some text")
+
+    assert result["name"] == "Test SM"
+    assert mock_client.messages.create.call_count == 2
+    assert mock_sleep.call_count == 1
+
+
+def test_parse_retry_exhausted_parse_failure(mock_anthropic, mock_sleep):
+    # All responses unparseable -> AIParseError after exhausting retries
+    mock_client = mock_anthropic.return_value
+    mock_client.messages.create.side_effect = [
+        _make_unparseable_response() for _ in range(10)
+    ]
+
+    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fake_key"}):
+        with pytest.raises(AIParseError) as excinfo:
+            parse_natural_language("some text")
+
+    assert "読み取れませんでした" in str(excinfo.value)
+    # Default retries = 3, so total calls = 1 + 3 = 4
+    assert mock_client.messages.create.call_count == 4
+    assert mock_sleep.call_count == 3
+
+
+def test_router_handles_parse_error(mock_anthropic, mock_sleep):
+    mock_client = mock_anthropic.return_value
+    mock_client.messages.create.side_effect = [
+        _make_unparseable_response() for _ in range(10)
+    ]
+    cookies = get_auth_cookie()
+    client = TestClient(app)
+
+    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fake_key"}):
+        response = client.post("/api/parse/", json={"text": "some text"}, cookies=cookies)
+
+    assert response.status_code == 502
+    assert "読み取れませんでした" in response.json()["detail"]
+
 
 def test_router_handles_rate_limit_error(mock_anthropic, mock_sleep):
     mock_client = mock_anthropic.return_value
