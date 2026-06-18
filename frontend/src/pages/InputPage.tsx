@@ -136,10 +136,19 @@ export default function InputPage() {
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
-              {error}
-              {error.includes('ANTHROPIC_API_KEY') && (
+              <p className="font-medium">AI解析に失敗しました</p>
+              <p className="mt-1">{error}</p>
+              {error.includes('ANTHROPIC_API_KEY') ? (
                 <button onClick={() => { setMode('manual'); setError(null) }} className="mt-2 block text-blue-600 underline text-xs">
                   手動作成モードに切り替える →
+                </button>
+              ) : (
+                <button
+                  onClick={() => parseMutation.mutate(text)}
+                  disabled={!text.trim() || parseMutation.isPending}
+                  className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {parseMutation.isPending ? '再試行中...' : '🔄 再試行'}
                 </button>
               )}
             </div>
