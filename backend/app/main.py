@@ -38,8 +38,29 @@ app.include_router(models_router.router, prefix="/api", dependencies=[Depends(ge
 app.include_router(simulate.router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(parse.router, prefix="/api", dependencies=[Depends(get_current_user)])
 
+def _check_auth_config():
+    """Log each missing auth setting distinctly at startup so that
+    misconfiguration is visible in Cloud Run logs at boot time."""
+    firebase_api_key = os.getenv("FIREBASE_WEB_API_KEY") or os.getenv("FIREBASE_API_KEY")
+    auth_secret = os.getenv("AUTH_SECRET")
+    allowed_emails = os.getenv("ALLOWED_USER_EMAILS")
+    missing = False
+    if not firebase_api_key:
+        logger.warning("FIREBASE_WEB_API_KEY / FIREBASE_API_KEY not configured")
+        missing = True
+    if not auth_secret:
+        logger.warning("AUTH_SECRET not configured")
+        missing = True
+    if not allowed_emails:
+        logger.warning("ALLOWED_USER_EMAILS not configured")
+        missing = True
+    if not missing:
+        logger.info("auth config OK")
+
+
 @app.on_event("startup")
 async def startup_event():
+    _check_auth_config()
     if APP_ENV != "production":
         from .database import SessionLocal
         db = SessionLocal()
