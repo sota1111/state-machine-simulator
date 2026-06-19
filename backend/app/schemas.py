@@ -1,12 +1,26 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+
+
+def _none_to_empty(value: Optional[str]) -> str:
+    """Coerce a NULL/None description (e.g. from nullable DB columns) to "".
+
+    Stored state machines and states may have a NULL `description` column, which
+    must not break response serialization for non-optional `str` fields.
+    """
+    return value if value is not None else ""
 
 # State schemas
 class StateBase(BaseModel):
     name: str
     description: str = ""
     is_terminal: bool = False
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def _coerce_description(cls, value: Optional[str]) -> str:
+        return _none_to_empty(value)
 
 class StateCreate(StateBase):
     pass
@@ -55,6 +69,11 @@ class StateMachineResponse(BaseModel):
     states: List[StateResponse]
     transitions: List[TransitionResponse]
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def _coerce_description(cls, value: Optional[str]) -> str:
+        return _none_to_empty(value)
 
 # Simulation schemas
 class SimulateRequest(BaseModel):
