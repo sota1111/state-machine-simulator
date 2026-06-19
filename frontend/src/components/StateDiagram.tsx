@@ -1,4 +1,5 @@
 import { useSimulationStore } from '../store/simulationStore'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import type { StateMachine, State, Transition } from '../types'
 
 interface Props {
@@ -17,10 +18,18 @@ export default function StateDiagram({ machine }: Props) {
   const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
   const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
   const visitedTransitionIds = new Set(visitedTransitionIdsArr)
+
+  // On narrow (mobile) screens, lay the diagram out top-to-bottom (vertical):
+  // BFS depth advances down the y axis and siblings spread across the x axis.
+  // On wider screens, keep the original left-to-right (horizontal) layout.
+  const isVertical = useMediaQuery('(max-width: 767px)')
+
   const NODE_WIDTH = 140
   const NODE_HEIGHT = 44
-  const COL_GAP = 80
-  const ROW_GAP = 32
+  // LAYER_GAP = spacing along the flow direction (between BFS depths);
+  // SIBLING_GAP = spacing perpendicular to flow (between nodes in the same depth).
+  const LAYER_GAP = isVertical ? 64 : 80
+  const SIBLING_GAP = isVertical ? 40 : 32
 
   // 1. BFS to determine layers
   const layers: Map<string, number> = new Map()
@@ -66,8 +75,13 @@ export default function StateDiagram({ machine }: Props) {
     const names = columns.get(colIdx)!
     names.forEach((name, rowIdx) => {
       const state = machine.states.find(s => s.name === name)!
-      const x = colIdx * (NODE_WIDTH + COL_GAP) + 20
-      const y = rowIdx * (NODE_HEIGHT + ROW_GAP) + 20
+      // colIdx = BFS depth (flow axis), rowIdx = position within the depth.
+      const x = isVertical
+        ? rowIdx * (NODE_WIDTH + SIBLING_GAP) + 20
+        : colIdx * (NODE_WIDTH + LAYER_GAP) + 20
+      const y = isVertical
+        ? colIdx * (NODE_HEIGHT + LAYER_GAP) + 20
+        : rowIdx * (NODE_HEIGHT + SIBLING_GAP) + 20
       nodePositions.set(name, { x, y, width: NODE_WIDTH, height: NODE_HEIGHT, state })
       maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + 20)
       maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + 20)
@@ -80,8 +94,35 @@ export default function StateDiagram({ machine }: Props) {
     const to = nodePositions.get(t.to_state)
     if (!from || !to) return null
 
+    const offset = (index - (total - 1) / 2) * 20
+
+    if (isVertical) {
+      if (t.from_state === t.to_state) {
+        // Self-transition loop, drawn off the right edge
+        const x = from.x + from.width
+        const y = from.y + from.height / 2
+        const size = 30 + index * 10
+        return `M ${x} ${y-10} C ${x+size} ${y-size}, ${x+size} ${y+size}, ${x} ${y+10}`
+      }
+
+      const startX = from.x + from.width / 2
+      const startY = from.y + from.height
+      const endX = to.x + to.width / 2
+      const endY = to.y
+
+      if (from.y < to.y) {
+        // Forward transition (downward)
+        const midY = (startY + endY) / 2
+        return `M ${startX} ${startY} C ${startX + offset} ${midY}, ${endX + offset} ${midY}, ${endX} ${endY}`
+      } else {
+        // Backward or same row transition: route around the top
+        const midY = Math.min(from.y, to.y) - LAYER_GAP / 2
+        return `M ${startX} ${from.y} C ${startX + offset} ${midY}, ${endX + offset} ${midY}, ${endX} ${to.y}`
+      }
+    }
+
     if (t.from_state === t.to_state) {
-      // Self-transition loop
+      // Self-transition loop, drawn off the top edge
       const x = from.x + from.width / 2
       const y = from.y
       const size = 30 + index * 10
@@ -96,12 +137,10 @@ export default function StateDiagram({ machine }: Props) {
     if (from.x < to.x) {
       // Forward transition
       const midX = (startX + endX) / 2
-      const offset = (index - (total - 1) / 2) * 20
       return `M ${startX} ${startY} C ${midX} ${startY + offset}, ${midX} ${endY + offset}, ${endX} ${endY}`
     } else {
       // Backward or same column transition
-      const midX = Math.min(from.x, to.x) - COL_GAP / 2
-      const offset = (index - (total - 1) / 2) * 20
+      const midX = Math.min(from.x, to.x) - LAYER_GAP / 2
       return `M ${from.x} ${startY} C ${midX} ${startY + offset}, ${midX} ${endY + offset}, ${to.x} ${endY}`
     }
   }
@@ -172,13 +211,22 @@ export default function StateDiagram({ machine }: Props) {
                    const from = nodePositions.get(t.from_state)
                    const to = nodePositions.get(t.to_state)
                    if (!from || !to) return null
+                   const labelOffset = (index - (samePair.length - 1) / 2) * 20
                    let lx, ly
-                   if (t.from_state === t.to_state) {
+                   if (isVertical) {
+                     if (t.from_state === t.to_state) {
+                       lx = from.x + from.width + 35 + index * 10
+                       ly = from.y + from.height / 2
+                     } else {
+                       lx = (from.x + from.width / 2 + to.x + to.width / 2) / 2 + labelOffset
+                       ly = (from.y + from.height + to.y) / 2
+                     }
+                   } else if (t.from_state === t.to_state) {
                      lx = from.x + from.width / 2
                      ly = from.y - 35 - index * 10
                    } else {
                      lx = (from.x + from.width + to.x) / 2
-                     ly = (from.y + from.height / 2 + to.y + to.height / 2) / 2 + (index - (samePair.length - 1) / 2) * 20 - 5
+                     ly = (from.y + from.height / 2 + to.y + to.height / 2) / 2 + labelOffset - 5
                    }
                    return (
                      <text x={lx} y={ly} className="text-[10px] font-mono fill-gray-600 bg-white" textAnchor="middle">
