@@ -1,6 +1,4 @@
-import os
 import uuid
-import sys
 from datetime import datetime, timezone
 from typing import List, Optional
 from .base import StateMachineRepository
@@ -13,9 +11,9 @@ class FirestoreStateMachineRepository(StateMachineRepository):
     HISTORY_COLLECTION = "simulation_history"
 
     def __init__(self):
-        # Use absolute path to import firestore_client from the root of the backend
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-        from firestore_client import get_firestore_client
+        # firestore_client lives inside the app package so it is always shipped
+        # with `COPY app/` in the Docker image (regardless of WORKDIR).
+        from ..firestore_client import get_firestore_client
         self.db = get_firestore_client()
 
     def _doc_to_response(self, data: dict) -> StateMachineResponse:
