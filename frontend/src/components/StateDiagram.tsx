@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import type { StateMachine, State, Transition } from '../types'
@@ -22,7 +23,11 @@ export default function StateDiagram({ machine }: Props) {
   // On narrow (mobile) screens, lay the diagram out top-to-bottom (vertical):
   // BFS depth advances down the y axis and siblings spread across the x axis.
   // On wider screens, keep the original left-to-right (horizontal) layout.
-  const isVertical = useMediaQuery('(max-width: 767px)')
+  // This is the responsive *default*; the user can override it with the toggle button below.
+  const mqVertical = useMediaQuery('(max-width: 767px)')
+  // null = follow the responsive default; true/false = explicit user choice.
+  const [orientationOverride, setOrientationOverride] = useState<boolean | null>(null)
+  const isVertical = orientationOverride ?? mqVertical
 
   // On desktop the diagram is shown full-width (simulation moved below it), so use
   // larger nodes and gaps to make the diagram bigger and easier to read.
@@ -149,6 +154,19 @@ export default function StateDiagram({ machine }: Props) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 overflow-auto">
+      {/* Layout direction toggle: switch between vertical (top→bottom) and horizontal (left→right) */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xs text-gray-500">遷移方向</span>
+        <button
+          type="button"
+          onClick={() => setOrientationOverride(!isVertical)}
+          aria-label={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
+          title={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
+          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          {isVertical ? '縦表示 ↓（横に切替）' : '横表示 →（縦に切替）'}
+        </button>
+      </div>
       <div className="min-w-max">
         <svg width={maxColWidth} height={maxRowHeight} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
           <defs>
