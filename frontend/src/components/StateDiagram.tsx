@@ -24,12 +24,14 @@ export default function StateDiagram({ machine }: Props) {
   // On wider screens, keep the original left-to-right (horizontal) layout.
   const isVertical = useMediaQuery('(max-width: 767px)')
 
-  const NODE_WIDTH = 140
-  const NODE_HEIGHT = 44
+  // On desktop the diagram is shown full-width (simulation moved below it), so use
+  // larger nodes and gaps to make the diagram bigger and easier to read.
+  const NODE_WIDTH = isVertical ? 140 : 180
+  const NODE_HEIGHT = isVertical ? 44 : 56
   // LAYER_GAP = spacing along the flow direction (between BFS depths);
   // SIBLING_GAP = spacing perpendicular to flow (between nodes in the same depth).
-  const LAYER_GAP = isVertical ? 64 : 80
-  const SIBLING_GAP = isVertical ? 40 : 32
+  const LAYER_GAP = isVertical ? 64 : 120
+  const SIBLING_GAP = isVertical ? 40 : 48
 
   // 1. BFS to determine layers
   const layers: Map<string, number> = new Map()

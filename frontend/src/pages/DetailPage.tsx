@@ -73,7 +73,7 @@ export default function DetailPage() {
         <p className="text-gray-600">{machine.description}</p>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <div className="space-y-4">
           <h2 className="font-semibold text-gray-700">状態遷移図</h2>
           <StateDiagram
