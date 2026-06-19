@@ -56,9 +56,16 @@ export default function ListPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">読み込み中...</div>
+        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+          <span className="h-8 w-8 mb-3 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" aria-hidden />
+          <p className="text-sm">読み込み中...</p>
+        </div>
       ) : error ? (
-        <div className="text-center py-12 text-red-500">エラーが発生しました</div>
+        <div className="text-center py-12">
+          <div className="text-3xl mb-2" aria-hidden>⚠️</div>
+          <p className="font-semibold text-gray-700">エラーが発生しました</p>
+          <p className="text-sm text-gray-400 mt-1">時間をおいて再度お試しください。</p>
+        </div>
       ) : !models || models.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
           <p className="text-gray-500">
