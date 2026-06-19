@@ -30,11 +30,12 @@ function Layout() {
   const { logout, isAuthenticated } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <nav className="bg-white/90 backdrop-blur shadow-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="text-xl font-bold text-blue-600">
+            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900 tracking-tight">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-extrabold">SM</span>
               State Machine Simulator
             </Link>
             <div className="flex items-center gap-2">
@@ -65,9 +66,12 @@ function Layout() {
           )}
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
         <Outlet />
       </main>
+      <footer className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
+        State Machine Simulator — 状態遷移モデルの設計とシミュレーション
+      </footer>
     </div>
   )
 }
