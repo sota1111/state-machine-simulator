@@ -64,6 +64,7 @@ class StateMachineResponse(BaseModel):
     name: str
     description: str
     initial_state: str
+    is_sample: bool = False
     created_at: datetime
     updated_at: datetime
     states: List[StateResponse]

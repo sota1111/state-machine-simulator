@@ -17,6 +17,7 @@ class StateMachine(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
+    is_sample = Column(Boolean, default=False, nullable=False)
 
     states = relationship("State", back_populates="machine", cascade="all, delete-orphan")
     transitions = relationship("Transition", back_populates="machine", cascade="all, delete-orphan")

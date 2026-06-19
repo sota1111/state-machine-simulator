@@ -1,12 +1,17 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getModels, deleteModel } from '../api'
 
+type View = 'mine' | 'sample'
+
 export default function ListPage() {
   const queryClient = useQueryClient()
+  const [view, setView] = useState<View>('mine')
+
   const { data: models, isLoading, error } = useQuery({
-    queryKey: ['models'],
-    queryFn: getModels,
+    queryKey: ['models', view],
+    queryFn: () => getModels(view === 'sample'),
   })
 
   const deleteMutation = useMutation({
@@ -14,8 +19,12 @@ export default function ListPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
   })
 
-  if (isLoading) return <div className="text-center py-12 text-gray-500">読み込み中...</div>
-  if (error) return <div className="text-center py-12 text-red-500">エラーが発生しました</div>
+  const isSampleView = view === 'sample'
+
+  const tabClass = (active: boolean) =>
+    active
+      ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
+      : 'px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
 
   return (
     <div className="space-y-6">
@@ -29,12 +38,37 @@ export default function ListPage() {
         </Link>
       </div>
 
-      {!models || models.length === 0 ? (
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setView('mine')}
+          className={tabClass(view === 'mine')}
+        >
+          自作
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('sample')}
+          className={tabClass(view === 'sample')}
+        >
+          サンプル
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-12 text-gray-500">読み込み中...</div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-500">エラーが発生しました</div>
+      ) : !models || models.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-500">モデルがありません</p>
-          <Link to="/input" className="mt-4 inline-block text-blue-600 hover:underline">
-            最初のモデルを作成する
-          </Link>
+          <p className="text-gray-500">
+            {isSampleView ? 'サンプルがありません' : 'モデルがありません'}
+          </p>
+          {!isSampleView && (
+            <Link to="/input" className="mt-4 inline-block text-blue-600 hover:underline">
+              最初のモデルを作成する
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -57,16 +91,18 @@ export default function ListPage() {
                 >
                   詳細
                 </Link>
-                <button
-                  onClick={() => {
-                    if (confirm(`「${model.name}」を削除しますか？`)) {
-                      deleteMutation.mutate(model.id)
-                    }
-                  }}
-                  className="px-3 py-1.5 border border-red-300 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors"
-                >
-                  削除
-                </button>
+                {!isSampleView && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`「${model.name}」を削除しますか？`)) {
+                        deleteMutation.mutate(model.id)
+                      }
+                    }}
+                    className="px-3 py-1.5 border border-red-300 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors"
+                  >
+                    削除
+                  </button>
+                )}
               </div>
             </div>
           ))}

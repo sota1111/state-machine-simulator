@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 export default function DashboardPage() {
   const { data: models, isLoading } = useQuery({
     queryKey: ['models'],
-    queryFn: getModels,
+    queryFn: () => getModels(),
   })
 
   const analysisQueries = useQuery({

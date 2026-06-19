@@ -25,8 +25,8 @@ api.interceptors.response.use(
   }
 )
 
-export const getModels = (): Promise<StateMachine[]> =>
-  api.get('/models/').then(r => r.data)
+export const getModels = (isSample?: boolean): Promise<StateMachine[]> =>
+  api.get('/models/', isSample === undefined ? undefined : { params: { is_sample: isSample } }).then(r => r.data)
 
 export const getModel = (id: string): Promise<StateMachine> =>
   api.get(`/models/${id}`).then(r => r.data)

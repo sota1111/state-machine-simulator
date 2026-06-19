@@ -4,7 +4,7 @@ from ..schemas import StateMachineCreate, StateMachineResponse, AnalysisResponse
 
 class StateMachineRepository(ABC):
     @abstractmethod
-    def list(self) -> List[StateMachineResponse]:
+    def list(self, is_sample: Optional[bool] = None) -> List[StateMachineResponse]:
         pass
 
     @abstractmethod

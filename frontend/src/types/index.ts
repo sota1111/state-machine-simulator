@@ -19,6 +19,7 @@ export interface StateMachine {
   name: string
   description: string
   initial_state: string
+  is_sample: boolean
   created_at: string
   updated_at: string
   states: State[]
