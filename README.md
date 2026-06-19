@@ -4,13 +4,13 @@
 
 ## プロジェクト概要
 
-状態遷移仕様は設計書や要求仕様書に自然言語で記載されることが多く、レビューや設計時に状態や遷移の抜け漏れが発生しやすい。本ツールは自然言語入力からAI（Claude API）を使って状態遷移モデルを自動生成し、可視化・シミュレーションを可能にする。
+状態遷移仕様は設計書や要求仕様書に自然言語で記載されることが多く、レビューや設計時に状態や遷移の抜け漏れが発生しやすい。本ツールは自然言語入力からAI（Google Gemini API）を使って状態遷移モデルを自動生成し、可視化・シミュレーションを可能にする。
 
 ## 認証情報なし開発クイックスタート
 
-**Anthropic APIキーなしで即座にローカル動作確認が可能です。**
+**Gemini APIキーなしで即座にローカル動作確認が可能です。**
 
-手動作成モードを使用するため、Claude APIへの接続は不要です。
+手動作成モードを使用するため、Gemini APIへの接続は不要です。
 
 ```bash
 # 1. リポジトリのクローン
@@ -27,7 +27,7 @@ docker compose up --build
 アクセス: http://localhost:5173
 
 **認証情報が不要な理由:**
-- `ANTHROPIC_API_KEY` 未設定時は「手動作成モード」でステートマシンを作成できます
+- `GEMINI_API_KEY` 未設定時は「手動作成モード」でステートマシンを作成できます
 - ローカルデータはSQLiteに保存されます（GCP不要）
 - AIによる自然言語解析が不要な場合は、APIキーなしで全機能を利用可能です
 
@@ -37,13 +37,13 @@ docker compose up --build
 
 - Python 3.11+
 - Node.js 20+
-- Anthropic API キー（自然言語解析機能を使用する場合）
+- Google Gemini API キー（自然言語解析機能を使用する場合）
 
 ### 環境変数の設定
 
 ```bash
 cp .env.example .env
-# .envを編集してANTHROPIC_API_KEYを設定
+# .envを編集してGEMINI_API_KEYを設定
 ```
 
 ### バックエンド起動
@@ -74,7 +74,7 @@ npm run dev
 
 ```bash
 cp .env.example .env
-# .envにANTHROPIC_API_KEYを設定
+# .envにGEMINI_API_KEYを設定
 
 docker-compose up
 ```
@@ -115,18 +115,18 @@ docker-compose up
 ```
 フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  SQLite / Firestore
          ↓                               ↓
-   HTML/SVG (状態遷移図)          Anthropic Claude API
+   HTML/SVG (状態遷移図)          Google Gemini API
    Recharts (グラフ)                (自然言語解析)
 ```
 
 - **フロントエンド**: React 18 + TypeScript + Vite + TanStack Query + Tailwind CSS
 - **バックエンド**: Python 3.11 + FastAPI + SQLAlchemy 2.x
 - **データベース**: SQLite（`backend/data/app.db`）※SQLite はローカル開発用、本番（Cloud Run, APP_ENV=production）は Firestore。
-- **NLP**: Anthropic Claude API（claude-sonnet-4-6）
+- **NLP**: Google Gemini API（gemini-2.0-flash、`GEMINI_MODEL` で変更可）
 
 ## 制約事項
 
-- 自然言語解析機能（`POST /api/parse`）にはANTHROPIC_API_KEYが必要
+- 自然言語解析機能（`POST /api/parse`）にはGEMINI_API_KEYが必要
 - APIキーなしでも、手動でモデル作成・編集・シミュレーションは可能（現バージョンでは直接API経由）
 - 本番は Firestore を使用する（SQLiteはローカル開発用）
 - 同時接続数が多い場合はパフォーマンスが低下する可能性がある
@@ -232,7 +232,7 @@ pytest
 6. シミュレーションパネルでイベントボタンをクリックして状態遷移を確認
 7. ダッシュボード画面でグラフが表示されることを確認
 
-### 自然言語解析の確認（ANTHROPIC_API_KEY設定済みの場合）
+### 自然言語解析の確認（GEMINI_API_KEY設定済みの場合）
 
 1. http://localhost:5173/input を開く
 2. テキストエリアに状態遷移仕様を日本語で入力
@@ -252,7 +252,7 @@ GitHub Actions（main merge）
   └─► Artifact Registry（Dockerイメージ）
         └─► Cloud Run Service（nginx + FastAPI + React）
               └─► Firestore（状態遷移モデル保存）
-                    └─► Secret Manager（ANTHROPIC_API_KEY）
+                    └─► Secret Manager（GEMINI_API_KEY）
 ```
 
 - **Cloud Run**: シングルコンテナ（nginx + FastAPI + React静的ファイル）
@@ -295,7 +295,8 @@ bash scripts/gcp/deploy-service.sh
 | 変数名 | 説明 | 必須 | デフォルト |
 |---|---|---|---|
 | `APP_ENV` | 実行環境（local / production） | Yes | `local` |
-| `ANTHROPIC_API_KEY` | Anthropic API キー | No（なければAI機能skip） | - |
+| `GEMINI_API_KEY` | Google Gemini API キー | No（なければAI機能skip） | - |
+| `GEMINI_MODEL` | 使用するGeminiモデル | No | `gemini-2.0-flash` |
 | `DATABASE_URL` | SQLite DB パス（ローカルのみ） | ローカルのみ | - |
 | `GCP_PROJECT_ID` | GCP プロジェクト ID | 本番必須 | - |
 | `GCP_REGION` | GCP リージョン | 本番必須 | `asia-northeast1` |
@@ -360,7 +361,7 @@ docker compose up --build
 ### Secret Manager 設定
 
 ```bash
-echo -n "your-anthropic-key" | gcloud secrets create ANTHROPIC_API_KEY \
+echo -n "your-gemini-key" | gcloud secrets create GEMINI_API_KEY \
   --project=$GCP_PROJECT_ID --data-file=-
 ```
 

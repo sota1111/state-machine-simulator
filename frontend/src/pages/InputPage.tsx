@@ -138,7 +138,7 @@ export default function InputPage() {
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
               <p className="font-medium">AI解析に失敗しました</p>
               <p className="mt-1">{error}</p>
-              {error.includes('ANTHROPIC_API_KEY') ? (
+              {error.includes('GEMINI_API_KEY') ? (
                 <button onClick={() => { setMode('manual'); setError(null) }} className="mt-2 block text-blue-600 underline text-xs">
                   手動作成モードに切り替える →
                 </button>

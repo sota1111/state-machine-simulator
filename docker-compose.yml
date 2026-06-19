@@ -9,7 +9,7 @@ services:
     environment:
       - APP_ENV=local
       - DATABASE_URL=sqlite:////app/data/app.db
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - LOG_LEVEL=INFO
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
