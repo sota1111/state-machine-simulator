@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
+from typing import List, Optional
 from ..dependencies import get_repository
 from ..repositories.base import StateMachineRepository
 from ..schemas import (
@@ -10,8 +10,11 @@ from ..services.validation import validate_business_rules
 router = APIRouter(prefix="/models", tags=["models"])
 
 @router.get("/", response_model=List[StateMachineResponse])
-def get_models(repo: StateMachineRepository = Depends(get_repository)):
-    return repo.list()
+def get_models(
+    is_sample: Optional[bool] = None,
+    repo: StateMachineRepository = Depends(get_repository),
+):
+    return repo.list(is_sample=is_sample)
 
 @router.post("/", response_model=StateMachineResponse)
 def create_model(data: StateMachineCreate, repo: StateMachineRepository = Depends(get_repository)):

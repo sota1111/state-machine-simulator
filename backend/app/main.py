@@ -73,6 +73,15 @@ async def startup_event():
             db.close()
     else:
         logger.info("Running in production mode (APP_ENV=production). Skipping SQLite seed.")
+        from .seed import seed_firestore_samples
+        try:
+            count = seed_firestore_samples()
+            if count:
+                logger.info(f"Seeded {count} sample state machines into Firestore")
+            else:
+                logger.info("Firestore samples already present; skipping seed")
+        except Exception as e:
+            logger.error(f"Failed to seed Firestore samples: {e}")
 
 @app.get("/health")
 def health_check():

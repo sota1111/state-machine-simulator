@@ -9,8 +9,11 @@ class SQLiteStateMachineRepository(StateMachineRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def list(self) -> List[StateMachineResponse]:
-        return self.db.query(StateMachine).filter(StateMachine.is_deleted == False).all()
+    def list(self, is_sample: Optional[bool] = None) -> List[StateMachineResponse]:
+        query = self.db.query(StateMachine).filter(StateMachine.is_deleted == False)
+        if is_sample is not None:
+            query = query.filter(StateMachine.is_sample == is_sample)
+        return query.all()
 
     def get(self, id: str) -> Optional[StateMachineResponse]:
         return self.db.query(StateMachine).filter(StateMachine.id == id, StateMachine.is_deleted == False).first()

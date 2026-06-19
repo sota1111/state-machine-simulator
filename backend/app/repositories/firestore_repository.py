@@ -52,14 +52,18 @@ class FirestoreStateMachineRepository(StateMachineRepository):
             name=data["name"],
             description=data.get("description", ""),
             initial_state=data["initial_state"],
+            is_sample=data.get("is_sample", False),
             created_at=created_at or datetime.now(timezone.utc),
             updated_at=updated_at or datetime.now(timezone.utc),
             states=states,
             transitions=transitions,
         )
 
-    def list(self) -> List[StateMachineResponse]:
-        docs = self.db.collection(self.COLLECTION).where("is_deleted", "==", False).stream()
+    def list(self, is_sample: Optional[bool] = None) -> List[StateMachineResponse]:
+        query = self.db.collection(self.COLLECTION).where("is_deleted", "==", False)
+        if is_sample is not None:
+            query = query.where("is_sample", "==", is_sample)
+        docs = query.stream()
         return [self._doc_to_response(doc.to_dict()) for doc in docs]
 
     def get(self, id: str) -> Optional[StateMachineResponse]:
@@ -94,6 +98,7 @@ class FirestoreStateMachineRepository(StateMachineRepository):
             "created_at": now,
             "updated_at": now,
             "is_deleted": False,
+            "is_sample": False,
         }
 
         self.db.collection(self.COLLECTION).document(machine_id).set(doc_data)
