@@ -57,13 +57,13 @@ export default function SimulationPanel({ machine }: Props) {
         {availableEvents.length === 0 ? (
           <p className="text-sm text-gray-400 italic">終端状態（イベントなし）</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
             {availableEvents.map(event => (
               <button
                 key={event}
                 onClick={() => mutation.mutate(event)}
                 disabled={mutation.isPending}
-                className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
+                className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 {event}
               </button>
