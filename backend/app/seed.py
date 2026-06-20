@@ -6,10 +6,25 @@ from .models import StateMachine, State, Transition
 from .data.sample_state_machines import SAMPLE_STATE_MACHINES
 
 def seed_sample_data(db: Session):
-    if db.query(StateMachine).count() > 0:
-        return
+    """Idempotently reconcile sample state machines into the SQLite DB.
 
+    Reconciles by name: only samples whose name is not yet present as a sample
+    machine are inserted. This means samples added to SAMPLE_STATE_MACHINES after
+    an environment was first seeded are still picked up on the next startup,
+    instead of being skipped because the table is non-empty.
+    """
+    existing_sample_names = {
+        name
+        for (name,) in db.query(StateMachine.name)
+        .filter(StateMachine.is_sample == True)  # noqa: E712
+        .all()
+    }
+
+    added = 0
     for sample in SAMPLE_STATE_MACHINES:
+        if sample["name"] in existing_sample_names:
+            continue
+
         machine = StateMachine(
             name=sample["name"],
             description=sample["description"],
@@ -41,16 +56,21 @@ def seed_sample_data(db: Session):
             for t in sample["transitions"]
         ]
         db.add_all(transitions)
+        added += 1
 
-    db.commit()
+    if added:
+        db.commit()
+    return added
 
 
 def seed_firestore_samples():
-    """Idempotently seed sample state machines into Firestore (production).
+    """Idempotently reconcile sample state machines into Firestore (production).
 
-    Samples are written only if no sample doc (is_sample == True) exists yet, so
-    repeated startups do not duplicate them. Firestore errors are propagated to the
-    caller, which is expected to wrap this call in try/except at startup.
+    Reconciles by name: only samples whose name is not yet present as a sample
+    doc (is_sample == True) are written, so repeated startups do not duplicate
+    them AND samples added after the first seed are still picked up later.
+    Firestore errors are propagated to the caller, which is expected to wrap this
+    call in try/except at startup.
     """
     from .repositories.firestore_repository import FirestoreStateMachineRepository
 
@@ -58,12 +78,16 @@ def seed_firestore_samples():
     db = repo.db
     collection = db.collection(FirestoreStateMachineRepository.COLLECTION)
 
-    existing = list(collection.where("is_sample", "==", True).limit(1).stream())
-    if existing:
-        return 0
+    existing_sample_names = {
+        doc.to_dict().get("name")
+        for doc in collection.where("is_sample", "==", True).stream()
+    }
 
+    added = 0
     now = datetime.now(timezone.utc)
     for sample in SAMPLE_STATE_MACHINES:
+        if sample["name"] in existing_sample_names:
+            continue
         machine_id = str(uuid.uuid4())
         states = [
             {
@@ -97,5 +121,6 @@ def seed_firestore_samples():
             "is_sample": True,
         }
         collection.document(machine_id).set(doc_data)
+        added += 1
 
-    return len(SAMPLE_STATE_MACHINES)
+    return added
