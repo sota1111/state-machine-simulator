@@ -34,7 +34,7 @@ function Layout() {
       <nav className="bg-white/90 backdrop-blur shadow-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900 tracking-tight">
+            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap shrink-0">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-extrabold">SM</span>
               State Machine Simulator
             </Link>
@@ -58,7 +58,7 @@ function Layout() {
           </div>
           {/* Mobile navigation */}
           {isAuthenticated && (
-            <div className="sm:hidden pb-3 flex flex-wrap gap-2">
+            <div className="sm:hidden pb-3 flex flex-nowrap gap-2 overflow-x-auto">
               <NavLink to="/input">新規作成</NavLink>
               <NavLink to="/">一覧</NavLink>
               <NavLink to="/dashboard">ダッシュボード</NavLink>
