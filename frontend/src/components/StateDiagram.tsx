@@ -5,6 +5,11 @@ import type { StateMachine, State, Transition } from '../types'
 
 interface Props {
   machine: StateMachine
+  // Controlled orientation. When `isVertical` is provided, the diagram uses it and the
+  // 遷移方向 toggle calls `onToggleVertical` instead of managing orientation internally.
+  // When omitted, the component falls back to its own responsive default + internal toggle.
+  isVertical?: boolean
+  onToggleVertical?: () => void
 }
 
 interface NodePos {
@@ -15,7 +20,7 @@ interface NodePos {
   state: State
 }
 
-export default function StateDiagram({ machine }: Props) {
+export default function StateDiagram({ machine, isVertical: controlledVertical, onToggleVertical }: Props) {
   const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
   const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
   const visitedTransitionIds = new Set(visitedTransitionIdsArr)
@@ -27,7 +32,16 @@ export default function StateDiagram({ machine }: Props) {
   const mqVertical = useMediaQuery('(max-width: 767px)')
   // null = follow the responsive default; true/false = explicit user choice.
   const [orientationOverride, setOrientationOverride] = useState<boolean | null>(null)
-  const isVertical = orientationOverride ?? mqVertical
+  // Controlled mode: a parent owns the orientation (so it can also drive page layout).
+  const isControlled = controlledVertical !== undefined
+  const isVertical = isControlled ? controlledVertical : (orientationOverride ?? mqVertical)
+  const toggleVertical = () => {
+    if (isControlled) {
+      onToggleVertical?.()
+    } else {
+      setOrientationOverride(!isVertical)
+    }
+  }
 
   // On desktop the diagram is shown full-width (simulation moved below it), so use
   // larger nodes and gaps to make the diagram bigger and easier to read.
@@ -159,7 +173,7 @@ export default function StateDiagram({ machine }: Props) {
         <span className="text-xs text-gray-500">遷移方向</span>
         <button
           type="button"
-          onClick={() => setOrientationOverride(!isVertical)}
+          onClick={toggleVertical}
           aria-label={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
           title={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
           className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
