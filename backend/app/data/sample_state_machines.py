@@ -22,13 +22,13 @@ SAMPLE_STATE_MACHINES = [
         "description": "E-commerce order lifecycle",
         "initial_state": "Cart",
         "states": [
-            {"name": "Cart", "is_terminal": False},
-            {"name": "Checkout", "is_terminal": False},
-            {"name": "Payment Processing", "is_terminal": False},
-            {"name": "Confirmed", "is_terminal": False},
-            {"name": "Shipped", "is_terminal": False},
-            {"name": "Delivered", "is_terminal": True},
-            {"name": "Cancelled", "is_terminal": True}
+            {"name": "Cart", "is_terminal": False, "parent": "注文受付"},
+            {"name": "Checkout", "is_terminal": False, "parent": "注文受付"},
+            {"name": "Payment Processing", "is_terminal": False, "parent": "決済処理"},
+            {"name": "Confirmed", "is_terminal": False, "parent": "決済処理"},
+            {"name": "Shipped", "is_terminal": False, "parent": "配送"},
+            {"name": "Delivered", "is_terminal": True, "parent": "配送"},
+            {"name": "Cancelled", "is_terminal": True, "parent": "キャンセル"}
         ],
         "transitions": [
             {"from_state": "Cart", "to_state": "Checkout", "event": "proceed_to_checkout"},
@@ -91,12 +91,12 @@ SAMPLE_STATE_MACHINES = [
         "description": "Maintenance workflow for industrial robots",
         "initial_state": "問い合わせ受付",
         "states": [
-            {"name": "問い合わせ受付", "is_terminal": False},
-            {"name": "原因分析", "is_terminal": False},
-            {"name": "ベンダー対応", "is_terminal": False},
-            {"name": "自社保守対応", "is_terminal": False},
-            {"name": "完了確認", "is_terminal": False},
-            {"name": "完了", "is_terminal": True}
+            {"name": "問い合わせ受付", "is_terminal": False, "parent": "受付・分析"},
+            {"name": "原因分析", "is_terminal": False, "parent": "受付・分析"},
+            {"name": "ベンダー対応", "is_terminal": False, "parent": "修理対応"},
+            {"name": "自社保守対応", "is_terminal": False, "parent": "修理対応"},
+            {"name": "完了確認", "is_terminal": False, "parent": "完了処理"},
+            {"name": "完了", "is_terminal": True, "parent": "完了処理"}
         ],
         "transitions": [
             {"from_state": "問い合わせ受付", "to_state": "原因分析", "event": "分析開始"},
@@ -113,14 +113,14 @@ SAMPLE_STATE_MACHINES = [
         "description": "High-level state machine for semiconductor manufacturing tool",
         "initial_state": "電源投入",
         "states": [
-            {"name": "電源投入", "is_terminal": False},
-            {"name": "初期化中", "is_terminal": False},
-            {"name": "待機", "is_terminal": False},
-            {"name": "レシピ設定", "is_terminal": False},
-            {"name": "搬送中", "is_terminal": False},
-            {"name": "処理中", "is_terminal": False},
-            {"name": "アラーム", "is_terminal": False},
-            {"name": "非常停止", "is_terminal": False}
+            {"name": "電源投入", "is_terminal": False, "parent": "起動"},
+            {"name": "初期化中", "is_terminal": False, "parent": "起動"},
+            {"name": "待機", "is_terminal": False, "parent": "稼働"},
+            {"name": "レシピ設定", "is_terminal": False, "parent": "稼働"},
+            {"name": "搬送中", "is_terminal": False, "parent": "稼働"},
+            {"name": "処理中", "is_terminal": False, "parent": "稼働"},
+            {"name": "アラーム", "is_terminal": False, "parent": "異常"},
+            {"name": "非常停止", "is_terminal": False, "parent": "異常"}
         ],
         "transitions": [
             {"from_state": "電源投入", "to_state": "初期化中", "event": "起動"},
@@ -141,14 +141,14 @@ SAMPLE_STATE_MACHINES = [
         "description": "Sales pipeline for a SaaS product",
         "initial_state": "リード獲得",
         "states": [
-            {"name": "リード獲得", "is_terminal": False},
-            {"name": "コンタクト済み", "is_terminal": False},
-            {"name": "ヒアリング中", "is_terminal": False},
-            {"name": "提案中", "is_terminal": False},
-            {"name": "承認待ち", "is_terminal": False},
-            {"name": "見積提出", "is_terminal": False},
-            {"name": "受注", "is_terminal": True},
-            {"name": "失注", "is_terminal": True}
+            {"name": "リード獲得", "is_terminal": False, "parent": "アプローチ"},
+            {"name": "コンタクト済み", "is_terminal": False, "parent": "アプローチ"},
+            {"name": "ヒアリング中", "is_terminal": False, "parent": "商談"},
+            {"name": "提案中", "is_terminal": False, "parent": "商談"},
+            {"name": "承認待ち", "is_terminal": False, "parent": "商談"},
+            {"name": "見積提出", "is_terminal": False, "parent": "商談"},
+            {"name": "受注", "is_terminal": True, "parent": "クローズ"},
+            {"name": "失注", "is_terminal": True, "parent": "クローズ"}
         ],
         "transitions": [
             {"from_state": "リード獲得", "to_state": "コンタクト済み", "event": "メール送信"},

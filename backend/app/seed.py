@@ -24,7 +24,8 @@ def seed_sample_data(db: Session):
                 machine_id=machine.id,
                 name=s["name"],
                 description=s.get("description", ""),
-                is_terminal=s.get("is_terminal", False)
+                is_terminal=s.get("is_terminal", False),
+                parent=s.get("parent")
             )
             for s in sample["states"]
         ]
@@ -70,6 +71,7 @@ def seed_firestore_samples():
                 "name": s["name"],
                 "description": s.get("description", ""),
                 "is_terminal": s.get("is_terminal", False),
+                "parent": s.get("parent"),
             }
             for s in sample["states"]
         ]

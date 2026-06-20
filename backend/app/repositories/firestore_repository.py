@@ -32,6 +32,7 @@ class FirestoreStateMachineRepository(StateMachineRepository):
                 name=s["name"],
                 description=s.get("description", ""),
                 is_terminal=s.get("is_terminal", False),
+                parent=s.get("parent"),
             )
             for s in data.get("states", [])
         ]
@@ -80,7 +81,7 @@ class FirestoreStateMachineRepository(StateMachineRepository):
         machine_id = str(uuid.uuid4())
 
         states = [
-            {"id": str(uuid.uuid4()), "name": s.name, "description": s.description, "is_terminal": s.is_terminal}
+            {"id": str(uuid.uuid4()), "name": s.name, "description": s.description, "is_terminal": s.is_terminal, "parent": s.parent}
             for s in data.states
         ]
         transitions = [
@@ -114,7 +115,7 @@ class FirestoreStateMachineRepository(StateMachineRepository):
         existing = doc.to_dict()
 
         states = [
-            {"id": str(uuid.uuid4()), "name": s.name, "description": s.description, "is_terminal": s.is_terminal}
+            {"id": str(uuid.uuid4()), "name": s.name, "description": s.description, "is_terminal": s.is_terminal, "parent": s.parent}
             for s in data.states
         ]
         transitions = [

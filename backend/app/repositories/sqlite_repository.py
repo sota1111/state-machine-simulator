@@ -32,7 +32,8 @@ class SQLiteStateMachineRepository(StateMachineRepository):
                 machine_id=db_machine.id,
                 name=s.name,
                 description=s.description,
-                is_terminal=s.is_terminal
+                is_terminal=s.is_terminal,
+                parent=s.parent
             )
             self.db.add(db_state)
             
@@ -67,7 +68,8 @@ class SQLiteStateMachineRepository(StateMachineRepository):
                 machine_id=db_machine.id,
                 name=s.name,
                 description=s.description,
-                is_terminal=s.is_terminal
+                is_terminal=s.is_terminal,
+                parent=s.parent
             )
             self.db.add(db_state)
             

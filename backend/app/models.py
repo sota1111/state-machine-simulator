@@ -31,6 +31,9 @@ class State(Base):
     name = Column(String, nullable=False)
     description = Column(Text)
     is_terminal = Column(Boolean, default=False)
+    # Optional parent/super state used to group related states (hierarchical display).
+    # Null for flat machines; set on complex samples (state count > 5).
+    parent = Column(String, nullable=True)
 
     machine = relationship("StateMachine", back_populates="states")
 

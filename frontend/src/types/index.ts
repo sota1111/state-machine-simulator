@@ -4,6 +4,8 @@ export interface State {
   name: string
   description: string
   is_terminal: boolean
+  // Optional parent/super state grouping this state belongs to (hierarchical display).
+  parent?: string | null
 }
 
 export interface Transition {

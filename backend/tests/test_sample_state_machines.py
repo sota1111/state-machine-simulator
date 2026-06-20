@@ -37,3 +37,18 @@ def test_sample_integrity(sample):
     
     unreachable = set(state_names) - reachable
     assert not unreachable, f"Sample '{name}' has unreachable states: {unreachable}"
+
+
+@pytest.mark.parametrize("sample", SAMPLE_STATE_MACHINES)
+def test_parent_state_grouping(sample):
+    """Complex samples (state count > 5) must assign a parent (group) to every state;
+    simple samples (<= 5) stay flat with no parent."""
+    name = sample["name"]
+    states = sample["states"]
+
+    if len(states) > 5:
+        missing = [s["name"] for s in states if not s.get("parent")]
+        assert not missing, f"Complex sample '{name}' missing parent on states: {missing}"
+    else:
+        grouped = [s["name"] for s in states if s.get("parent")]
+        assert not grouped, f"Simple sample '{name}' should be flat but has parent on: {grouped}"
