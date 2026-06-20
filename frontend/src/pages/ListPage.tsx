@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getModels, deleteModel } from '../api'
+import { useI18n } from '../i18n/useI18n'
 
 type View = 'mine' | 'sample'
 
 export default function ListPage() {
   const queryClient = useQueryClient()
+  const { t, lang } = useI18n()
   const [view, setView] = useState<View>('mine')
 
   const { data: models, isLoading, error } = useQuery({
@@ -29,12 +31,12 @@ export default function ListPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">状態遷移モデル一覧</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('list.title')}</h1>
         <Link
           to="/input"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
         >
-          + 新規作成
+          {t('list.new')}
         </Link>
       </div>
 
@@ -44,36 +46,36 @@ export default function ListPage() {
           onClick={() => setView('mine')}
           className={tabClass(view === 'mine')}
         >
-          自作
+          {t('list.tabMine')}
         </button>
         <button
           type="button"
           onClick={() => setView('sample')}
           className={tabClass(view === 'sample')}
         >
-          サンプル
+          {t('list.tabSample')}
         </button>
       </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-gray-500">
           <span className="h-8 w-8 mb-3 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" aria-hidden />
-          <p className="text-sm">読み込み中...</p>
+          <p className="text-sm">{t('common.loading')}</p>
         </div>
       ) : error ? (
         <div className="text-center py-12">
           <div className="text-3xl mb-2" aria-hidden>⚠️</div>
-          <p className="font-semibold text-gray-700">エラーが発生しました</p>
-          <p className="text-sm text-gray-400 mt-1">時間をおいて再度お試しください。</p>
+          <p className="font-semibold text-gray-700">{t('list.errorTitle')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('list.errorBody')}</p>
         </div>
       ) : !models || models.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
           <p className="text-gray-500">
-            {isSampleView ? 'サンプルがありません' : 'モデルがありません'}
+            {isSampleView ? t('list.emptySample') : t('list.emptyMine')}
           </p>
           {!isSampleView && (
             <Link to="/input" className="mt-4 inline-block text-blue-600 hover:underline">
-              最初のモデルを作成する
+              {t('list.createFirst')}
             </Link>
           )}
         </div>
@@ -88,26 +90,29 @@ export default function ListPage() {
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-                <span>{model.states.length} 状態</span>
-                <span>{model.transitions.length} 遷移</span>
+                <span>{model.states.length} {t('unit.states')}</span>
+                <span>{model.transitions.length} {t('unit.transitions')}</span>
               </div>
               <div className="mt-4 flex gap-2">
                 <Link
                   to={`/models/${model.id}`}
                   className="flex-1 text-center px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
                 >
-                  詳細
+                  {t('common.detail')}
                 </Link>
                 {!isSampleView && (
                   <button
                     onClick={() => {
-                      if (confirm(`「${model.name}」を削除しますか？`)) {
+                      const confirmMsg = lang === 'ja'
+                        ? `「${model.name}」を削除しますか？`
+                        : `Delete "${model.name}"?`
+                      if (confirm(confirmMsg)) {
                         deleteMutation.mutate(model.id)
                       }
                     }}
                     className="px-3 py-1.5 border border-red-300 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors"
                   >
-                    削除
+                    {t('common.delete')}
                   </button>
                 )}
               </div>

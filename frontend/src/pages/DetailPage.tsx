@@ -8,9 +8,11 @@ import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useI18n } from '../i18n/useI18n'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const currentStateFromStore = useSimulationStore(state => state.currentState)
@@ -61,8 +63,8 @@ export default function DetailPage() {
     URL.revokeObjectURL(url)
   }
 
-  if (machineLoading) return <div className="text-center py-12 text-gray-500">読み込み中...</div>
-  if (!machine) return <div className="text-center py-12 text-red-500">モデルが見つかりません</div>
+  if (machineLoading) return <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
+  if (!machine) return <div className="text-center py-12 text-red-500">{t('detail.notFound')}</div>
 
   // Move the event buttons beside the diagram only on PC + vertical direction, and not while editing
   // (the editor needs full width).
@@ -72,14 +74,14 @@ export default function DetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700">
-          ← 一覧に戻る
+          {t('detail.back')}
         </button>
         <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
         <button
           onClick={handleExport}
           className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
         >
-          JSON エクスポート
+          {t('detail.exportJson')}
         </button>
       </div>
 
@@ -92,12 +94,12 @@ export default function DetailPage() {
       <div className={sideBySide ? 'flex flex-row gap-6 items-start' : 'space-y-6'}>
         <div className={`space-y-4 ${sideBySide ? 'flex-1 min-w-0' : ''}`}>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-700">状態遷移図</h2>
+            <h2 className="font-semibold text-gray-700">{t('detail.diagram')}</h2>
             <button
               onClick={() => setIsEditing(v => !v)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
             >
-              {isEditing ? '編集を終了' : '✏️ 図を編集'}
+              {isEditing ? t('detail.endEdit') : t('detail.editDiagram')}
             </button>
           </div>
           {isEditing ? (
@@ -124,12 +126,12 @@ export default function DetailPage() {
 
       <div className="grid sm:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-700 mb-3">状態一覧</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">{t('detail.statesList')}</h3>
           <div className="space-y-2">
             {machine.states.map(s => (
               <div key={s.id} className="flex items-center justify-between text-sm">
                 <span className={`font-medium ${s.name === (currentState ?? machine.initial_state) ? 'text-blue-600' : 'text-gray-800'}`}>
-                  {s.name}{s.name === machine.initial_state ? ' (初期)' : ''}{s.is_terminal ? ' (終端)' : ''}
+                  {s.name}{s.name === machine.initial_state ? ` (${t('detail.initialTag')})` : ''}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
                 </span>
                 {s.description && <span className="text-gray-500 text-xs">{s.description}</span>}
               </div>
@@ -138,7 +140,7 @@ export default function DetailPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-700 mb-3">遷移一覧</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">{t('detail.transitionsList')}</h3>
           <div className="space-y-2">
             {machine.transitions.map(t => (
               <div key={t.id} className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { parseText, createModel } from '../api'
 import type { ParseResponse } from '../types'
+import { useI18n } from '../i18n/useI18n'
 
 type Mode = 'ai' | 'manual'
 
@@ -19,6 +20,7 @@ interface ManualTransition {
 }
 
 export default function InputPage() {
+  const { t } = useI18n()
   const [mode, setMode] = useState<Mode>('ai')
   const [text, setText] = useState('')
   const [parsed, setParsed] = useState<ParseResponse | null>(null)
@@ -70,11 +72,11 @@ export default function InputPage() {
   const handleSaveManual = () => {
     setError(null)
     const validStates = manualStates.filter(s => s.name.trim())
-    if (!manualName.trim()) { setError('モデル名を入力してください'); return }
-    if (validStates.length === 0) { setError('最低1つの状態を入力してください'); return }
-    if (!manualInitialState.trim()) { setError('初期状態を入力してください'); return }
+    if (!manualName.trim()) { setError(t('input.errNameRequired')); return }
+    if (validStates.length === 0) { setError(t('input.errStateRequired')); return }
+    if (!manualInitialState.trim()) { setError(t('input.errInitialRequired')); return }
     if (!validStates.find(s => s.name === manualInitialState)) {
-      setError('初期状態は状態一覧に含まれている必要があります')
+      setError(t('input.errInitialInList'))
       return
     }
     const validTransitions = manualTransitions.filter(t => t.from_state.trim() && t.to_state.trim() && t.event.trim())
@@ -101,7 +103,7 @@ export default function InputPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">新規モデル作成</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t('input.title')}</h1>
 
       {/* Mode toggle */}
       <div className="flex rounded-lg border border-gray-200 overflow-hidden">
@@ -109,13 +111,13 @@ export default function InputPage() {
           onClick={() => setMode('ai')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
         >
-          🤖 AIで解析
+          {t('input.modeAi')}
         </button>
         <button
           onClick={() => setMode('manual')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
         >
-          ✏️ 手動作成
+          {t('input.modeManual')}
         </button>
       </div>
 
@@ -124,23 +126,23 @@ export default function InputPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              状態遷移仕様を自然言語で記述してください
+              {t('input.aiLabel')}
             </label>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="例: ユーザーがログイン画面でIDとパスワードを入力して送信すると認証中状態になります..."
+              placeholder={t('input.aiPlaceholder')}
               className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
-              <p className="font-medium">AI解析に失敗しました</p>
+              <p className="font-medium">{t('input.aiFailed')}</p>
               <p className="mt-1">{error}</p>
               {error.includes('GEMINI_API_KEY') ? (
                 <button onClick={() => { setMode('manual'); setError(null) }} className="mt-2 block text-blue-600 underline text-xs">
-                  手動作成モードに切り替える →
+                  {t('input.switchManual')}
                 </button>
               ) : (
                 <button
@@ -148,7 +150,7 @@ export default function InputPage() {
                   disabled={!text.trim() || parseMutation.isPending}
                   className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
-                  {parseMutation.isPending ? '再試行中...' : '🔄 再試行'}
+                  {parseMutation.isPending ? t('input.retrying') : t('input.retry')}
                 </button>
               )}
             </div>
@@ -159,7 +161,7 @@ export default function InputPage() {
             disabled={!text.trim() || parseMutation.isPending}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {parseMutation.isPending ? '解析中...' : 'AIで解析する'}
+            {parseMutation.isPending ? t('input.parsing') : t('input.parseBtn')}
           </button>
         </div>
       )}
@@ -169,32 +171,32 @@ export default function InputPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div className="grid gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">モデル名 *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.modelNameReq')}</label>
               <input
                 type="text"
                 value={manualName}
                 onChange={e => setManualName(e.target.value)}
-                placeholder="例: ログインフロー"
+                placeholder={t('input.modelNamePlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">説明</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.description')}</label>
               <input
                 type="text"
                 value={manualDescription}
                 onChange={e => setManualDescription(e.target.value)}
-                placeholder="任意の説明"
+                placeholder={t('input.descPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">初期状態 *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.initialStateReq')}</label>
               <input
                 type="text"
                 value={manualInitialState}
                 onChange={e => setManualInitialState(e.target.value)}
-                placeholder="例: ログアウト"
+                placeholder={t('input.initialPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -203,8 +205,8 @@ export default function InputPage() {
           {/* States */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">状態一覧 *</label>
-              <button onClick={addState} className="text-xs text-blue-600 hover:underline">+ 追加</button>
+              <label className="text-sm font-medium text-gray-700">{t('input.statesLabelReq')}</label>
+              <button onClick={addState} className="text-xs text-blue-600 hover:underline">{t('input.add')}</button>
             </div>
             <div className="space-y-2">
               {manualStates.map((s, i) => (
@@ -213,19 +215,19 @@ export default function InputPage() {
                     type="text"
                     value={s.name}
                     onChange={e => updateState(i, 'name', e.target.value)}
-                    placeholder="状態名"
+                    placeholder={t('input.statePlaceholder')}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <input
                     type="text"
                     value={s.description}
                     onChange={e => updateState(i, 'description', e.target.value)}
-                    placeholder="説明（任意）"
+                    placeholder={t('input.stateDescPlaceholder')}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
                     <input type="checkbox" checked={s.is_terminal} onChange={e => updateState(i, 'is_terminal', e.target.checked)} />
-                    終端
+                    {t('input.terminal')}
                   </label>
                   <button onClick={() => removeState(i)} className="text-red-400 hover:text-red-600 text-sm">×</button>
                 </div>
@@ -236,33 +238,33 @@ export default function InputPage() {
           {/* Transitions */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">遷移一覧</label>
-              <button onClick={addTransition} className="text-xs text-blue-600 hover:underline">+ 追加</button>
+              <label className="text-sm font-medium text-gray-700">{t('input.transitionsLabel')}</label>
+              <button onClick={addTransition} className="text-xs text-blue-600 hover:underline">{t('input.add')}</button>
             </div>
             <div className="space-y-2">
-              {manualTransitions.map((t, i) => (
+              {manualTransitions.map((tr, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <select
-                    value={t.from_state}
+                    value={tr.from_state}
                     onChange={e => updateTransition(i, 'from_state', e.target.value)}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">送信元</option>
+                    <option value="">{t('input.fromState')}</option>
                     {stateNames.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <input
                     type="text"
-                    value={t.event}
+                    value={tr.event}
                     onChange={e => updateTransition(i, 'event', e.target.value)}
-                    placeholder="イベント名"
+                    placeholder={t('input.eventPlaceholder')}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <select
-                    value={t.to_state}
+                    value={tr.to_state}
                     onChange={e => updateTransition(i, 'to_state', e.target.value)}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">送信先</option>
+                    <option value="">{t('input.toState')}</option>
                     {stateNames.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <button onClick={() => removeTransition(i)} className="text-red-400 hover:text-red-600 text-sm">×</button>
@@ -280,7 +282,7 @@ export default function InputPage() {
             disabled={saveMutation.isPending}
             className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
           >
-            {saveMutation.isPending ? '保存中...' : 'モデルを保存する'}
+            {saveMutation.isPending ? t('input.saving') : t('input.saveModel')}
           </button>
         </div>
       )}
@@ -288,32 +290,32 @@ export default function InputPage() {
       {/* AI parse results */}
       {parsed && mode === 'ai' && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">解析結果</h2>
+          <h2 className="font-semibold text-gray-800">{t('input.parseResult')}</h2>
 
           <div className="grid gap-3">
             <div>
-              <span className="text-sm font-medium text-gray-500">モデル名:</span>
+              <span className="text-sm font-medium text-gray-500">{t('input.modelNameField')}:</span>
               <span className="ml-2 text-sm text-gray-900">{parsed.name}</span>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">初期状態:</span>
+              <span className="text-sm font-medium text-gray-500">{t('input.initialStateField')}:</span>
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-sm">{parsed.initial_state}</span>
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-2">状態一覧 ({parsed.states.length}件)</p>
+            <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.statesList')} ({parsed.states.length})</p>
             <div className="flex flex-wrap gap-2">
               {parsed.states.map(s => (
                 <span key={s.name} className={`px-2 py-1 rounded text-xs ${s.is_terminal ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-800'}`}>
-                  {s.name}{s.is_terminal ? ' (終端)' : ''}
+                  {s.name}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
                 </span>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-2">遷移一覧 ({parsed.transitions.length}件)</p>
+            <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
             <div className="space-y-1">
               {parsed.transitions.map((t, i) => (
                 <div key={i} className="text-xs text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded">
@@ -329,13 +331,13 @@ export default function InputPage() {
               disabled={saveMutation.isPending}
               className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
-              {saveMutation.isPending ? '保存中...' : 'このモデルを保存する'}
+              {saveMutation.isPending ? t('input.saving') : t('input.saveThisModel')}
             </button>
             <button
               onClick={() => setParsed(null)}
               className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
             >
-              やり直す
+              {t('input.redo')}
             </button>
           </div>
         </div>
