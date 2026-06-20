@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getModel, getAnalysis } from '../api'
 import StateDiagram from '../components/StateDiagram'
+import StateDiagramEditor from '../components/StateDiagramEditor'
 import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
 import { useSimulationStore } from '../store/simulationStore'
@@ -10,6 +11,7 @@ import { useSimulationStore } from '../store/simulationStore'
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [isEditing, setIsEditing] = useState(false)
   const currentStateFromStore = useSimulationStore(state => state.currentState)
   const initForMachine = useSimulationStore(state => state.initForMachine)
 
@@ -75,10 +77,25 @@ export default function DetailPage() {
 
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="font-semibold text-gray-700">状態遷移図</h2>
-          <StateDiagram
-            machine={machine}
-          />
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-700">状態遷移図</h2>
+            <button
+              onClick={() => setIsEditing(v => !v)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+            >
+              {isEditing ? '編集を終了' : '✏️ 図を編集'}
+            </button>
+          </div>
+          {isEditing ? (
+            <StateDiagramEditor
+              machine={machine}
+              onSaved={() => setIsEditing(false)}
+            />
+          ) : (
+            <StateDiagram
+              machine={machine}
+            />
+          )}
         </div>
 
         <div className="space-y-4">
