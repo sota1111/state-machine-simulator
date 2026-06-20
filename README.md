@@ -100,6 +100,7 @@ docker-compose up
 | name | string | 状態名（モデル内でユニーク） |
 | description | string | 説明 |
 | is_terminal | bool | 終端状態フラグ |
+| parent | string | 親（スーパー）状態名。関連状態をグループ化して階層表示する（任意） |
 
 ### Transition（遷移）
 | フィールド | 型 | 説明 |
@@ -142,7 +143,7 @@ docker-compose up
 
 ## サンプルシナリオ
 
-起動直後から以下のサンプルデータが利用できます（※階層状態（parentStates等）を持つ複雑なサンプルは現在未対応です）。
+起動直後から以下のサンプルデータ（10件）が利用できます。状態を親（スーパー）状態でグループ化する階層表示にも対応しており、サンプル 9・10 は `parent` でグループ化された複雑なモデルです。
 
 ### 1. ログインフロー (Login Flow)
 ```
@@ -205,13 +206,19 @@ Yellow --[timer_expire]--> Red
 ... (他)
 ```
 
+### 9. ai-dev-control-plane Issue実行パイプライン
+Issue実行状態 × Worker状態 × キュー状態（autonomous runner）を、`parent`（Webhookイベント種別 / Issue優先度 / Queue状態 / Worker状態 / Linear Issue状態 等）でグループ化した階層モデル。
+
+### 10. ai-dev-control-plane アプリ配備・認証状態
+アプリ種別 × 認証方式 × Cloud Run公開状態 × Secret状態を `parent` でグループ化した階層モデル。
+
 ## 動作確認手順
 
 ### バックエンドAPIの確認
 
 1. バックエンドを起動: `cd backend && uvicorn app.main:app --reload`
 2. http://localhost:8000/docs を開く
-3. `GET /api/models/` を実行してサンプルデータが8件あることを確認
+3. `GET /api/models/` を実行してサンプルデータが10件あることを確認
 4. サンプルモデルのIDをコピーして `GET /api/models/{id}/analysis` を実行
 
 ### バックエンド自動テストの実行
@@ -226,7 +233,7 @@ pytest
 
 1. フロントエンドを起動: `cd frontend && npm run dev`
 2. http://localhost:5173 を開く
-3. 一覧画面でサンプルデータ8件が表示されることを確認
+3. 一覧画面でサンプルデータ10件が表示されることを確認
 4. いずれかのモデルの「詳細」ボタンをクリック
 5. 状態遷移図（SVG）が表示されることを確認
 6. シミュレーションパネルでイベントボタンをクリックして状態遷移を確認
