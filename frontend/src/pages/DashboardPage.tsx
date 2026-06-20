@@ -68,7 +68,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="font-semibold text-gray-700 mb-4">サマリー</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm responsive-table">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-gray-500 font-medium">モデル名</th>
@@ -81,13 +81,13 @@ export default function DashboardPage() {
               <tbody>
                 {models.map((m, i) => (
                   <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2 px-3 font-medium text-gray-900">{m.name}</td>
-                    <td className="py-2 px-3 text-right text-gray-700">{m.states.length}</td>
-                    <td className="py-2 px-3 text-right text-gray-700">{m.transitions.length}</td>
-                    <td className="py-2 px-3 text-right text-gray-700">
+                    <td className="py-2 px-3 font-medium text-gray-900" data-label="モデル名">{m.name}</td>
+                    <td className="py-2 px-3 text-right text-gray-700" data-label="状態数">{m.states.length}</td>
+                    <td className="py-2 px-3 text-right text-gray-700" data-label="遷移数">{m.transitions.length}</td>
+                    <td className="py-2 px-3 text-right text-gray-700" data-label="シミュレーション">
                       {analysisQueries.data?.[i]?.simulation_run_count ?? '-'}
                     </td>
-                    <td className="py-2 px-3 text-gray-700">{m.initial_state}</td>
+                    <td className="py-2 px-3 text-gray-700" data-label="初期状態">{m.initial_state}</td>
                   </tr>
                 ))}
               </tbody>
