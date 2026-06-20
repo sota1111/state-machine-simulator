@@ -7,6 +7,7 @@ import StateDiagramEditor from '../components/StateDiagramEditor'
 import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
 import { useSimulationStore } from '../store/simulationStore'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -14,6 +15,14 @@ export default function DetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const currentStateFromStore = useSimulationStore(state => state.currentState)
   const initForMachine = useSimulationStore(state => state.initForMachine)
+
+  // Transition direction is owned here (lifted out of StateDiagram) so it can also drive
+  // the page layout: on PC + vertical direction, the event buttons move beside the diagram.
+  // null = follow the responsive default (vertical on mobile, horizontal on wider screens).
+  const mqVertical = useMediaQuery('(max-width: 767px)')
+  const isPc = useMediaQuery('(min-width: 768px)')
+  const [orientationOverride, setOrientationOverride] = useState<boolean | null>(null)
+  const isVertical = orientationOverride ?? mqVertical
 
   const { data: machine, isLoading: machineLoading } = useQuery({
     queryKey: ['model', id],
@@ -56,6 +65,10 @@ export default function DetailPage() {
   if (machineLoading) return <div className="text-center py-12 text-gray-500">読み込み中...</div>
   if (!machine) return <div className="text-center py-12 text-red-500">モデルが見つかりません</div>
 
+  // Move the event buttons beside the diagram only on PC + vertical direction, and not while editing
+  // (the editor needs full width).
+  const sideBySide = isPc && isVertical && !isEditing
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -75,8 +88,10 @@ export default function DetailPage() {
         <p className="text-gray-600">{machine.description}</p>
       )}
 
-      <div className="space-y-6">
-        <div className="space-y-4">
+      {/* On PC with vertical transition direction (and not editing), the diagram is tall and
+          narrow, so the event buttons sit to its RIGHT. Otherwise they stack below. */}
+      <div className={sideBySide ? 'flex flex-row gap-6 items-start' : 'space-y-6'}>
+        <div className={`space-y-4 ${sideBySide ? 'flex-1 min-w-0' : ''}`}>
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-700">状態遷移図</h2>
             <button
@@ -94,11 +109,13 @@ export default function DetailPage() {
           ) : (
             <StateDiagram
               machine={machine}
+              isVertical={isVertical}
+              onToggleVertical={() => setOrientationOverride(!isVertical)}
             />
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${sideBySide ? 'w-80 shrink-0' : ''}`}>
           <SimulationPanel
             machine={machine}
           />
