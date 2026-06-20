@@ -52,6 +52,14 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   const LAYER_GAP = isVertical ? 64 : 120
   const SIBLING_GAP = isVertical ? 40 : 48
 
+  // Parent/super states: when any state declares a `parent`, related states are
+  // grouped inside a labeled container box to make complex machines easier to read.
+  const hasGroups = machine.states.some(s => !!s.parent)
+  // Extra outer margin so group boxes and their labels are not clipped.
+  const MARGIN = hasGroups ? 40 : 20
+  const GROUP_PADDING = 14
+  const GROUP_LABEL_H = 18
+
   // 1. BFS to determine layers
   const layers: Map<string, number> = new Map()
   const queue: [string, number][] = [[machine.initial_state, 0]]
@@ -98,15 +106,45 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       const state = machine.states.find(s => s.name === name)!
       // colIdx = BFS depth (flow axis), rowIdx = position within the depth.
       const x = isVertical
-        ? rowIdx * (NODE_WIDTH + SIBLING_GAP) + 20
-        : colIdx * (NODE_WIDTH + LAYER_GAP) + 20
+        ? rowIdx * (NODE_WIDTH + SIBLING_GAP) + MARGIN
+        : colIdx * (NODE_WIDTH + LAYER_GAP) + MARGIN
       const y = isVertical
-        ? colIdx * (NODE_HEIGHT + LAYER_GAP) + 20
-        : rowIdx * (NODE_HEIGHT + SIBLING_GAP) + 20
+        ? colIdx * (NODE_HEIGHT + LAYER_GAP) + MARGIN
+        : rowIdx * (NODE_HEIGHT + SIBLING_GAP) + MARGIN
       nodePositions.set(name, { x, y, width: NODE_WIDTH, height: NODE_HEIGHT, state })
-      maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + 20)
-      maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + 20)
+      maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + MARGIN)
+      maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + MARGIN)
     })
+  })
+
+  // 2b. Compute group (parent state) bounding boxes from child node positions.
+  const GROUP_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
+  const groupOrder: string[] = []
+  const groupPositions: Map<string, NodePos[]> = new Map()
+  machine.states.forEach((s) => {
+    if (!s.parent) return
+    const pos = nodePositions.get(s.name)
+    if (!pos) return
+    if (!groupPositions.has(s.parent)) {
+      groupPositions.set(s.parent, [])
+      groupOrder.push(s.parent)
+    }
+    groupPositions.get(s.parent)!.push(pos)
+  })
+  const groupBoxes = groupOrder.map((parent, i) => {
+    const positions = groupPositions.get(parent)!
+    const minX = Math.min(...positions.map(p => p.x)) - GROUP_PADDING
+    const minY = Math.min(...positions.map(p => p.y)) - GROUP_PADDING - GROUP_LABEL_H
+    const maxX = Math.max(...positions.map(p => p.x + p.width)) + GROUP_PADDING
+    const maxY = Math.max(...positions.map(p => p.y + p.height)) + GROUP_PADDING
+    return {
+      parent,
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      color: GROUP_COLORS[i % GROUP_COLORS.length],
+    }
   })
 
   // 3. Render helpers
@@ -194,6 +232,33 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
               <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a" />
             </marker>
           </defs>
+
+          {/* Group containers (parent / super states), drawn behind edges & nodes */}
+          {groupBoxes.map((g) => (
+            <g key={`group-${g.parent}`}>
+              <rect
+                x={g.x}
+                y={g.y}
+                width={g.width}
+                height={g.height}
+                rx="12"
+                fill={g.color}
+                fillOpacity="0.06"
+                stroke={g.color}
+                strokeOpacity="0.5"
+                strokeWidth="1.5"
+                strokeDasharray="6 4"
+              />
+              <text
+                x={g.x + 12}
+                y={g.y + 13}
+                className="text-[11px] font-semibold"
+                fill={g.color}
+              >
+                {g.parent}
+              </text>
+            </g>
+          ))}
 
           {/* Edges */}
           {machine.transitions.map((t) => {
@@ -368,6 +433,12 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           <div className="w-3 h-3 border-t-2 border-dashed border-[#16a34a]"></div>
           <span>遷移可能</span>
         </div>
+        {hasGroups && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 border border-dashed border-[#6366f1] rounded-sm bg-[#6366f1]/10"></div>
+            <span>親状態（グループ）</span>
+          </div>
+        )}
       </div>
     </div>
   )

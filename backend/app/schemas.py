@@ -16,6 +16,8 @@ class StateBase(BaseModel):
     name: str
     description: str = ""
     is_terminal: bool = False
+    # Optional parent/super state grouping this state belongs to (hierarchical display).
+    parent: Optional[str] = None
 
     @field_validator("description", mode="before")
     @classmethod
