@@ -90,32 +90,89 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   }
 
   // 2. Assign positions
-  const columns: Map<number, string[]> = new Map()
-  layers.forEach((depth, name) => {
-    if (!columns.has(depth)) columns.set(depth, [])
-    columns.get(depth)!.push(name)
-  })
-
   const nodePositions: Map<string, NodePos> = new Map()
   let maxColWidth = 0
   let maxRowHeight = 0
 
-  Array.from(columns.keys()).sort((a, b) => a - b).forEach((colIdx) => {
-    const names = columns.get(colIdx)!
-    names.forEach((name, rowIdx) => {
-      const state = machine.states.find(s => s.name === name)!
-      // colIdx = BFS depth (flow axis), rowIdx = position within the depth.
-      const x = isVertical
-        ? rowIdx * (NODE_WIDTH + SIBLING_GAP) + MARGIN
-        : colIdx * (NODE_WIDTH + LAYER_GAP) + MARGIN
-      const y = isVertical
-        ? colIdx * (NODE_HEIGHT + LAYER_GAP) + MARGIN
-        : rowIdx * (NODE_HEIGHT + SIBLING_GAP) + MARGIN
-      nodePositions.set(name, { x, y, width: NODE_WIDTH, height: NODE_HEIGHT, state })
-      maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + MARGIN)
-      maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + MARGIN)
+  if (hasGroups) {
+    // Group-aware (swimlane) layout: each parent group occupies its own contiguous BAND
+    // perpendicular to the flow axis. This keeps every parent's children together and
+    // guarantees the group boxes never overlap, so each parent visibly encloses only its
+    // own child states. The flow axis stays driven by BFS depth (shared across lanes).
+    const UNGROUPED = '__ungrouped__'
+    const LANE_GAP = 34
+    // Lane order = first-appearance order of parents; the ungrouped lane (if any) goes last.
+    const laneOrder: string[] = []
+    machine.states.forEach((s) => {
+      const lane = s.parent ?? UNGROUPED
+      if (!laneOrder.includes(lane)) laneOrder.push(lane)
     })
-  })
+    laneOrder.sort((a, b) => (a === UNGROUPED ? 1 : 0) - (b === UNGROUPED ? 1 : 0))
+
+    // laneCursor advances along the cross axis (y in horizontal mode, x in vertical mode).
+    let laneCursor = MARGIN
+    laneOrder.forEach((lane) => {
+      const laneStates = machine.states.filter((s) => (s.parent ?? UNGROUPED) === lane)
+      // Bucket this lane's states by BFS depth so the flow direction is preserved.
+      const byDepth: Map<number, string[]> = new Map()
+      laneStates.forEach((s) => {
+        const d = layers.get(s.name) ?? 0
+        if (!byDepth.has(d)) byDepth.set(d, [])
+        byDepth.get(d)!.push(s.name)
+      })
+      // Cross-axis size of the lane = the most states sharing a single depth.
+      const crossCount = Math.max(1, ...Array.from(byDepth.values()).map((a) => a.length))
+      // Reserve room at the top of a grouped lane for its parent label (horizontal mode).
+      // Vertical mode draws the label at the box top, so no cross-axis reserve is needed.
+      const crossReserve = lane === UNGROUPED || isVertical ? 0 : GROUP_LABEL_H + GROUP_PADDING
+
+      byDepth.forEach((names, depth) => {
+        names.forEach((name, crossIdx) => {
+          const state = machine.states.find((s) => s.name === name)!
+          let x: number
+          let y: number
+          if (isVertical) {
+            x = laneCursor + crossReserve + crossIdx * (NODE_WIDTH + SIBLING_GAP)
+            y = depth * (NODE_HEIGHT + LAYER_GAP) + MARGIN
+          } else {
+            x = depth * (NODE_WIDTH + LAYER_GAP) + MARGIN
+            y = laneCursor + crossReserve + crossIdx * (NODE_HEIGHT + SIBLING_GAP)
+          }
+          nodePositions.set(name, { x, y, width: NODE_WIDTH, height: NODE_HEIGHT, state })
+          maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + MARGIN)
+          maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + MARGIN)
+        })
+      })
+
+      const nodeSpan = isVertical ? NODE_WIDTH : NODE_HEIGHT
+      const band = crossReserve + crossCount * (nodeSpan + SIBLING_GAP)
+      laneCursor += band + GROUP_PADDING + LANE_GAP
+    })
+  } else {
+    // Flat layout: position nodes purely by BFS depth (no parent grouping).
+    const columns: Map<number, string[]> = new Map()
+    layers.forEach((depth, name) => {
+      if (!columns.has(depth)) columns.set(depth, [])
+      columns.get(depth)!.push(name)
+    })
+
+    Array.from(columns.keys()).sort((a, b) => a - b).forEach((colIdx) => {
+      const names = columns.get(colIdx)!
+      names.forEach((name, rowIdx) => {
+        const state = machine.states.find(s => s.name === name)!
+        // colIdx = BFS depth (flow axis), rowIdx = position within the depth.
+        const x = isVertical
+          ? rowIdx * (NODE_WIDTH + SIBLING_GAP) + MARGIN
+          : colIdx * (NODE_WIDTH + LAYER_GAP) + MARGIN
+        const y = isVertical
+          ? colIdx * (NODE_HEIGHT + LAYER_GAP) + MARGIN
+          : rowIdx * (NODE_HEIGHT + SIBLING_GAP) + MARGIN
+        nodePositions.set(name, { x, y, width: NODE_WIDTH, height: NODE_HEIGHT, state })
+        maxColWidth = Math.max(maxColWidth, x + NODE_WIDTH + MARGIN)
+        maxRowHeight = Math.max(maxRowHeight, y + NODE_HEIGHT + MARGIN)
+      })
+    })
+  }
 
   // 2b. Compute group (parent state) bounding boxes from child node positions.
   const GROUP_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
@@ -145,6 +202,12 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       height: maxY - minY,
       color: GROUP_COLORS[i % GROUP_COLORS.length],
     }
+  })
+
+  // Ensure the SVG canvas is large enough to contain the group boxes and their labels.
+  groupBoxes.forEach((g) => {
+    maxColWidth = Math.max(maxColWidth, g.x + g.width + MARGIN)
+    maxRowHeight = Math.max(maxRowHeight, g.y + g.height + MARGIN)
   })
 
   // 3. Render helpers
@@ -233,7 +296,8 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
             </marker>
           </defs>
 
-          {/* Group containers (parent / super states), drawn behind edges & nodes */}
+          {/* Group containers (parent / super states), drawn behind edges & nodes.
+              Each box encloses exactly one parent's child states (swimlane layout). */}
           {groupBoxes.map((g) => (
             <g key={`group-${g.parent}`}>
               <rect
@@ -243,17 +307,27 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                 height={g.height}
                 rx="12"
                 fill={g.color}
-                fillOpacity="0.06"
+                fillOpacity="0.10"
                 stroke={g.color}
-                strokeOpacity="0.5"
-                strokeWidth="1.5"
+                strokeOpacity="0.85"
+                strokeWidth="2"
                 strokeDasharray="6 4"
               />
-              <text
-                x={g.x + 12}
-                y={g.y + 13}
-                className="text-[11px] font-semibold"
+              {/* Filled label chip so the parent name is clearly readable on the box. */}
+              <rect
+                x={g.x + 8}
+                y={g.y + 3}
+                width={Math.max(28, g.parent.length * 8 + 12)}
+                height={GROUP_LABEL_H}
+                rx="5"
                 fill={g.color}
+              />
+              <text
+                x={g.x + 14}
+                y={g.y + 3 + GROUP_LABEL_H / 2}
+                dominantBaseline="middle"
+                className="text-[11px] font-semibold"
+                fill="white"
               >
                 {g.parent}
               </text>
