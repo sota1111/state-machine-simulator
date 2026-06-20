@@ -18,11 +18,10 @@ export default function DetailPage() {
 
   // Transition direction is owned here (lifted out of StateDiagram) so it can also drive
   // the page layout: on PC + vertical direction, the event buttons move beside the diagram.
-  // null = follow the responsive default (vertical on mobile, horizontal on wider screens).
-  const mqVertical = useMediaQuery('(max-width: 767px)')
+  // null = follow the default (vertical on every screen size); the user can override it.
   const isPc = useMediaQuery('(min-width: 768px)')
   const [orientationOverride, setOrientationOverride] = useState<boolean | null>(null)
-  const isVertical = orientationOverride ?? mqVertical
+  const isVertical = orientationOverride ?? true
 
   const { data: machine, isLoading: machineLoading } = useQuery({
     queryKey: ['model', id],
