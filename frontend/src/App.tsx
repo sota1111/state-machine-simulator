@@ -6,8 +6,11 @@ import DetailPage from './pages/DetailPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import LanguageToggle from './components/LanguageToggle'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
+import { I18nProvider } from './i18n/I18nProvider'
+import { useI18n } from './i18n/useI18n'
 
 const queryClient = new QueryClient()
 
@@ -28,6 +31,7 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
 
 function Layout() {
   const { logout, isAuthenticated } = useAuth()
+  const { t } = useI18n()
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -42,26 +46,27 @@ function Layout() {
               {isAuthenticated && (
                 <>
                   <div className="hidden sm:flex gap-2">
-                    <NavLink to="/input">新規作成</NavLink>
-                    <NavLink to="/">一覧</NavLink>
-                    <NavLink to="/dashboard">ダッシュボード</NavLink>
+                    <NavLink to="/input">{t('nav.create')}</NavLink>
+                    <NavLink to="/">{t('nav.list')}</NavLink>
+                    <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
                   </div>
                   <button
                     onClick={logout}
                     className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                   >
-                    ログアウト
+                    {t('nav.logout')}
                   </button>
                 </>
               )}
+              <LanguageToggle />
             </div>
           </div>
           {/* Mobile navigation */}
           {isAuthenticated && (
             <div className="sm:hidden pb-3 flex flex-nowrap gap-2 overflow-x-auto">
-              <NavLink to="/input">新規作成</NavLink>
-              <NavLink to="/">一覧</NavLink>
-              <NavLink to="/dashboard">ダッシュボード</NavLink>
+              <NavLink to="/input">{t('nav.create')}</NavLink>
+              <NavLink to="/">{t('nav.list')}</NavLink>
+              <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
             </div>
           )}
         </div>
@@ -70,7 +75,7 @@ function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
-        State Machine Simulator — 状態遷移モデルの設計とシミュレーション
+        State Machine Simulator — {t('app.footerTagline')}
       </footer>
     </div>
   )
@@ -94,12 +99,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <I18nProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </I18nProvider>
   )
 }
