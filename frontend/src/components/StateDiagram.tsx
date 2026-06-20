@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useSimulationStore } from '../store/simulationStore'
 import type { StateMachine, State, Transition } from '../types'
 
@@ -40,6 +40,24 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       setOrientationOverride(!isVertical)
     }
   }
+
+  // Zoom control. The diagram renders at a natural pixel size (maxColWidth × maxRowHeight, see
+  // below). We scale the rendered <svg> box while keeping the viewBox at natural size, so the
+  // layout math is untouched and the surrounding `overflow-auto` container provides pan/scroll.
+  // `scale === null` means "follow the fit-to-screen scale" (initial state, per SOT-948 the
+  // initial view must show the whole diagram). Once the user zooms manually, `scale` holds an
+  // explicit value and auto-fit stops.
+  const ZOOM_MIN = 0.2
+  const ZOOM_MAX = 2.5
+  const ZOOM_STEP = 0.1
+  const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100))
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [manualScale, setManualScale] = useState<number | null>(null)
+  const [fitScale, setFitScale] = useState(1)
+  const effectiveScale = manualScale ?? fitScale
+  const zoomIn = () => setManualScale(clampZoom((manualScale ?? fitScale) + ZOOM_STEP))
+  const zoomOut = () => setManualScale(clampZoom((manualScale ?? fitScale) - ZOOM_STEP))
+  const zoomReset = () => setManualScale(null)
 
   // On desktop the diagram is shown full-width (simulation moved below it), so use
   // larger nodes and gaps to make the diagram bigger and easier to read.
@@ -208,6 +226,26 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
     maxRowHeight = Math.max(maxRowHeight, g.y + g.height + MARGIN)
   })
 
+  // Fit-to-screen: measure the scroll container and compute the largest scale (never above 1)
+  // that fits the whole diagram horizontally. Recomputed on container resize and whenever the
+  // natural width changes (e.g. orientation toggle). Only width is used so tall diagrams stay
+  // readable and scroll vertically.
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const measure = () => {
+      // Subtract the container's horizontal padding (p-4 = 16px each side) from the available width.
+      const available = el.clientWidth - 32
+      if (maxColWidth <= 0 || available <= 0) return
+      setFitScale(clampZoom(Math.min(1, available / maxColWidth)))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [maxColWidth, maxRowHeight])
+
   // 3. Render helpers
   const getEdgePath = (t: Transition, index: number, total: number) => {
     const from = nodePositions.get(t.from_state)
@@ -266,9 +304,9 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 overflow-auto">
-      {/* Layout direction toggle: switch between vertical (top→bottom) and horizontal (left→right) */}
-      <div className="mb-3 flex items-center gap-2">
+    <div ref={containerRef} className="bg-white rounded-lg border border-gray-200 p-4 overflow-auto">
+      {/* Controls: layout direction toggle + zoom (拡大縮小) */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-xs text-gray-500">遷移方向</span>
         <button
           type="button"
@@ -279,9 +317,40 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
         >
           {isVertical ? '縦表示 ↓（横に切替）' : '横表示 →（縦に切替）'}
         </button>
+        <span className="ml-2 text-xs text-gray-500">表示倍率</span>
+        <button
+          type="button"
+          onClick={zoomOut}
+          aria-label="縮小"
+          title="縮小"
+          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          − 縮小
+        </button>
+        <button
+          type="button"
+          onClick={zoomIn}
+          aria-label="拡大"
+          title="拡大"
+          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          ＋ 拡大
+        </button>
+        <button
+          type="button"
+          onClick={zoomReset}
+          aria-label="全体表示（縮尺リセット）"
+          title="全体表示（縮尺リセット）"
+          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          全体表示
+        </button>
+        <span className="text-xs text-gray-500 tabular-nums" aria-live="polite">
+          {Math.round(effectiveScale * 100)}%
+        </span>
       </div>
       <div className="min-w-max">
-        <svg width={maxColWidth} height={maxRowHeight} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
+        <svg width={maxColWidth * effectiveScale} height={maxRowHeight * effectiveScale} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orientation="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#9ca3af" />
