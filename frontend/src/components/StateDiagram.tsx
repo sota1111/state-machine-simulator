@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useSimulationStore } from '../store/simulationStore'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 import type { StateMachine, State, Transition } from '../types'
 
 interface Props {
@@ -25,16 +24,15 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
   const visitedTransitionIds = new Set(visitedTransitionIdsArr)
 
-  // On narrow (mobile) screens, lay the diagram out top-to-bottom (vertical):
+  // The diagram lays out top-to-bottom (vertical) by default on every screen size:
   // BFS depth advances down the y axis and siblings spread across the x axis.
-  // On wider screens, keep the original left-to-right (horizontal) layout.
-  // This is the responsive *default*; the user can override it with the toggle button below.
-  const mqVertical = useMediaQuery('(max-width: 767px)')
-  // null = follow the responsive default; true/false = explicit user choice.
+  // This is the *default*; the user can override it with the toggle button below to get
+  // the left-to-right (horizontal) layout.
+  // null = follow the default (vertical); true/false = explicit user choice.
   const [orientationOverride, setOrientationOverride] = useState<boolean | null>(null)
   // Controlled mode: a parent owns the orientation (so it can also drive page layout).
   const isControlled = controlledVertical !== undefined
-  const isVertical = isControlled ? controlledVertical : (orientationOverride ?? mqVertical)
+  const isVertical = isControlled ? controlledVertical : (orientationOverride ?? true)
   const toggleVertical = () => {
     if (isControlled) {
       onToggleVertical?.()
