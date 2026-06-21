@@ -69,3 +69,14 @@ describe('StateDiagram zoom controls (SOT-948)', () => {
     expect(screen.getByText('100%')).toBeInTheDocument()
   })
 })
+
+describe('StateDiagram arrow markers', () => {
+  it('orients arrowheads along the edge path', () => {
+    renderDiagram()
+    const markerIds = ['arrowhead', 'arrowhead-traversed', 'arrowhead-available']
+
+    markerIds.forEach((id) => {
+      expect(document.getElementById(id)).toHaveAttribute('orient', 'auto')
+    })
+  })
+})

@@ -355,13 +355,13 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       <div className="min-w-max">
         <svg width={maxColWidth * effectiveScale} height={maxRowHeight * effectiveScale} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
           <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orientation="auto">
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#9ca3af" />
             </marker>
-            <marker id="arrowhead-traversed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orientation="auto">
+            <marker id="arrowhead-traversed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#4f46e5" />
             </marker>
-            <marker id="arrowhead-available" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orientation="auto">
+            <marker id="arrowhead-available" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a" />
             </marker>
           </defs>
