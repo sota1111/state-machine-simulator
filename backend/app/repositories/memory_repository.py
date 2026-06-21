@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from .base import StateMachineRepository
+from ..data.sample_reconcile import build_state_dicts, build_transition_dicts, sample_differs
 from ..schemas import (
     StateMachineCreate, StateMachineResponse, StateResponse, TransitionResponse, AnalysisResponse
 )
@@ -167,53 +168,51 @@ class InMemoryStateMachineRepository(StateMachineRepository):
     def seed_samples(self, samples) -> int:
         """Idempotently reconcile sample state machines into the store by name.
 
-        Mirrors the Firestore/SQLite seed reconcile: only samples whose name is
-        not already present as a sample (is_sample == True) are inserted, so
-        repeated startups never duplicate them and samples added later are still
-        picked up.
+        Mirrors the Firestore seed reconcile: a sample whose name is not yet
+        present as a sample (is_sample == True) is inserted, and an existing
+        sample whose stored definition differs from the source is refreshed in
+        place (keeping its id). This lets definition changes — e.g. added
+        `parent` grouping — reach an environment that was seeded earlier, while
+        an identical reseed makes no changes. User (non-sample) machines are
+        never touched. Returns the number of inserted + updated samples.
         """
-        existing_sample_names = {
-            d.get("name") for d in self._store.values() if d.get("is_sample")
+        existing_by_name = {
+            d.get("name"): d for d in self._store.values() if d.get("is_sample")
         }
-        added = 0
+        changed = 0
         now = datetime.now(timezone.utc)
         for sample in samples:
-            if sample["name"] in existing_sample_names:
+            existing = existing_by_name.get(sample["name"])
+            if existing is not None:
+                if not sample_differs(existing, sample):
+                    continue
+                existing.update(
+                    {
+                        "description": sample["description"],
+                        "initial_state": sample["initial_state"],
+                        "states": build_state_dicts(sample),
+                        "transitions": build_transition_dicts(sample),
+                        "updated_at": now,
+                        "is_deleted": False,
+                    }
+                )
+                changed += 1
                 continue
             machine_id = str(uuid.uuid4())
-            states = [
-                {
-                    "id": str(uuid.uuid4()),
-                    "name": s["name"],
-                    "description": s.get("description", ""),
-                    "is_terminal": s.get("is_terminal", False),
-                    "parent": s.get("parent"),
-                }
-                for s in sample["states"]
-            ]
-            transitions = [
-                {
-                    "id": str(uuid.uuid4()),
-                    "from_state": t["from_state"],
-                    "to_state": t["to_state"],
-                    "event": t["event"],
-                }
-                for t in sample["transitions"]
-            ]
             self._store[machine_id] = {
                 "id": machine_id,
                 "name": sample["name"],
                 "description": sample["description"],
                 "initial_state": sample["initial_state"],
-                "states": states,
-                "transitions": transitions,
+                "states": build_state_dicts(sample),
+                "transitions": build_transition_dicts(sample),
                 "created_at": now,
                 "updated_at": now,
                 "is_deleted": False,
                 "is_sample": True,
             }
-            added += 1
-        return added
+            changed += 1
+        return changed
 
 
 _singleton: Optional[InMemoryStateMachineRepository] = None
