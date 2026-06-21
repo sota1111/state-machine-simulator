@@ -1,35 +1,42 @@
-# Worker Report
+# Worker Report — SOT-976 (Claude Fallback)
 
 ## Summary
-SOT-846: スマホ(狭い画面)表示時に状態遷移図を上から下(縦方向)に描画するレイアウトを追加。
-PC(広い画面)では従来の左→右(横方向)を維持。サンプルモデルも同じ DetailPage→StateDiagram
-経由のため同一変更でカバー。
+SOT-976: make the sample seed reconcile refresh existing sample docs when their
+stored definition differs from source, so parent-state grouping reaches
+already-seeded environments (production Firestore). Source sample definitions for
+「半導体製造装置」「SaaS営業フロー」 already contained `parent`; the gap was the
+insert-only (skip-by-name) seed reconcile.
 
-**Worker non-response disclosure:** 実装担当の Gemini CLI が IneligibleTierError (free tier 非対応,
-`run_gemini.sh` exit 75) で応答不可、検証担当の Codex CLI も usage-limit cooldown (exit 75) で
-応答不可。Worker Non-Response Fallback Policy に基づき Claude Code が実装・検証を代行。
+## Worker Non-Response Disclosure (audit)
+- Non-responsive worker: **Gemini CLI**.
+- Detected failure mode: `scripts/ai/run_gemini.sh` exited **75** (WORKER_NONRESPONSE);
+  Gemini CLI crashed with `IneligibleTierError: UNSUPPORTED_CLIENT` (free tier no
+  longer supported). Known permanently-ineligible condition.
+- Action taken: per the Worker Non-Response Fallback Policy, **Claude Code performed
+  the implementation directly**. Verification/fixes were delegated to Codex CLI
+  (responsive). All Quality Gates apply unchanged.
 
 ## Changed Files
-- `frontend/src/hooks/useMediaQuery.ts` — 新規。CSS media query を購読し viewport 変化に追従する小フック
-- `frontend/src/components/StateDiagram.tsx` — orientation(縦/横)対応。`(max-width: 767px)` で縦方向に切替。
-  ノード配置・エッジ経路(getEdgePath)・イベントラベル位置を orientation で分岐。COL_GAP/ROW_GAP を
-  LAYER_GAP/SIBLING_GAP に一般化。
+- `backend/app/data/sample_reconcile.py` — new shared helper: build state/transition
+  dicts from a sample + `sample_differs()` content diff (ignores generated ids).
+- `backend/app/repositories/memory_repository.py` — `seed_samples()` now refreshes an
+  existing sample in place when it differs (was insert-only); returns inserted+updated.
+- `backend/app/seed.py` — `seed_firestore_samples()` now refreshes an existing sample
+  doc in place when it differs (keeps doc id + created_at); returns inserted+updated.
+- `backend/tests/test_seed_reconcile.py` — new regression test: stale flat sample
+  (no parent) is refreshed to gain parent grouping, no duplicate, idempotent reseed=0.
 
 ## Commands Run
-- `npm run lint` → exit 0
-- `npm run typecheck` → exit 0
-- `npm run build` → success (既存の chunk>500kB 警告のみ、エラーなし)
-- `npm test` / `npm run e2e` → スクリプト未定義のため N/A
+(verification delegated to Codex — see docs/ai/60_worker_codex_report.md)
 
 ## Acceptance Criteria
-- [x] スマホ幅で状態遷移図が上→下に縦方向で描画される (BFS深さ→y軸, layer内→x軸)
-- [x] PC幅では従来どおり左→右の横方向を維持
-- [x] サンプルモデルでも同様に表示される（同コンポーネント経由）
-- [x] lint / typecheck / build すべて pass
+- [x] Two target samples have parent states (already true in source).
+- [x] Seed reconcile propagates parent grouping to already-seeded (stale) environments.
+- [x] Reconcile stays idempotent (identical reseed = 0 changes, no duplicates).
 
 ## Risks
-- フロントにユニット/e2eテストが無く、縦レイアウトのエッジ描画の視覚的正しさは自動検証不可(差分レビュー依存)。
-- 後退/同一layer遷移の縦配線は上側に回す簡易ルーティングのため、複雑なグラフで線が重なる可能性。
+- Existing Firestore sample docs are refreshed in place on next production startup
+  (state/transition ids regenerated). User (non-sample) machines are never touched.
 
 ## Next Action
 READY_FOR_REVIEW
