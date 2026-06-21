@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getModels, deleteModel } from '../api'
 import { useI18n } from '../i18n/useI18n'
+import { sampleLabel } from '../i18n/sampleLabels'
 
 type View = 'mine' | 'sample'
 
@@ -85,7 +86,7 @@ export default function ListPage() {
             <div key={model.id} className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-gray-900 truncate">{model.name}</h2>
+                  <h2 className="font-semibold text-gray-900 truncate">{sampleLabel(model.name, lang)}</h2>
                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">{model.description}</p>
                 </div>
               </div>

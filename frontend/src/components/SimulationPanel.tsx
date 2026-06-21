@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { simulateStep } from '../api'
 import { useSimulationStore } from '../store/simulationStore'
+import { useI18n } from '../i18n/useI18n'
+import { sampleLabel } from '../i18n/sampleLabels'
 import type { StateMachine } from '../types'
 
 interface Props {
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export default function SimulationPanel({ machine }: Props) {
+  const { t, lang } = useI18n()
   const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
   const log = useSimulationStore(state => state.log)
   const addStep = useSimulationStore(state => state.addStep)
@@ -32,30 +35,30 @@ export default function SimulationPanel({ machine }: Props) {
         }
         queryClient.invalidateQueries({ queryKey: ['history', machine.id] })
       } else {
-        addLog(`エラー: ${data.message}`)
+        addLog(`${t('sim.errorPrefix')}: ${data.message}`)
       }
     }
   })
 
   const handleReset = () => {
-    reset(machine.initial_state)
+    reset(machine.initial_state, t('sim.resetLog'))
   }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-      <h3 className="font-semibold text-gray-800">シミュレーション</h3>
-      
+      <h3 className="font-semibold text-gray-800">{t('sim.title')}</h3>
+
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">現在の状態:</span>
+        <span className="text-sm text-gray-500">{t('sim.currentState')}</span>
         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-          {currentState}
+          {sampleLabel(currentState, lang)}
         </span>
       </div>
 
       <div>
-        <p className="text-sm text-gray-500 mb-2">実行可能なイベント:</p>
+        <p className="text-sm text-gray-500 mb-2">{t('sim.availableEvents')}</p>
         {availableEvents.length === 0 ? (
-          <p className="text-sm text-gray-400 italic">終端状態（イベントなし）</p>
+          <p className="text-sm text-gray-400 italic">{t('sim.terminalNoEvents')}</p>
         ) : (
           <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
             {availableEvents.map(event => (
@@ -65,7 +68,7 @@ export default function SimulationPanel({ machine }: Props) {
                 disabled={mutation.isPending}
                 className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                {event}
+                {sampleLabel(event, lang)}
               </button>
             ))}
           </div>
@@ -76,11 +79,11 @@ export default function SimulationPanel({ machine }: Props) {
         onClick={handleReset}
         className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-sm hover:bg-gray-50 transition-colors"
       >
-        リセット
+        {t('sim.reset')}
       </button>
 
       <div className="bg-gray-50 rounded p-3 max-h-40 overflow-y-auto">
-        <p className="text-xs text-gray-500 mb-1">ログ:</p>
+        <p className="text-xs text-gray-500 mb-1">{t('sim.log')}</p>
         {log.map((entry, i) => (
           <p key={i} className="text-xs text-gray-700 font-mono">{entry}</p>
         ))}

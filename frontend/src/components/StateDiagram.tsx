@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useSimulationStore } from '../store/simulationStore'
+import { useI18n } from '../i18n/useI18n'
+import { sampleLabel } from '../i18n/sampleLabels'
 import type { StateMachine, State, Transition } from '../types'
 
 interface Props {
@@ -20,6 +22,7 @@ interface NodePos {
 }
 
 export default function StateDiagram({ machine, isVertical: controlledVertical, onToggleVertical }: Props) {
+  const { t, lang } = useI18n()
   const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
   const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
   const visitedTransitionIds = new Set(visitedTransitionIdsArr)
@@ -307,43 +310,43 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
     <div ref={containerRef} className="bg-white rounded-lg border border-gray-200 p-4 overflow-auto">
       {/* Controls: layout direction toggle + zoom (拡大縮小) */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-gray-500">遷移方向</span>
+        <span className="text-xs text-gray-500">{t('diagram.direction')}</span>
         <button
           type="button"
           onClick={toggleVertical}
-          aria-label={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
-          title={isVertical ? '横方向（左から右）に切り替え' : '縦方向（上から下）に切り替え'}
+          aria-label={isVertical ? t('diagram.toHorizontal') : t('diagram.toVertical')}
+          title={isVertical ? t('diagram.toHorizontal') : t('diagram.toVertical')}
           className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          {isVertical ? '縦表示 ↓（横に切替）' : '横表示 →（縦に切替）'}
+          {isVertical ? t('diagram.showVertical') : t('diagram.showHorizontal')}
         </button>
-        <span className="ml-2 text-xs text-gray-500">表示倍率</span>
+        <span className="ml-2 text-xs text-gray-500">{t('diagram.zoom')}</span>
         <button
           type="button"
           onClick={zoomOut}
-          aria-label="縮小"
-          title="縮小"
+          aria-label={t('diagram.zoomOutAria')}
+          title={t('diagram.zoomOutAria')}
           className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          − 縮小
+          {t('diagram.zoomOut')}
         </button>
         <button
           type="button"
           onClick={zoomIn}
-          aria-label="拡大"
-          title="拡大"
+          aria-label={t('diagram.zoomInAria')}
+          title={t('diagram.zoomInAria')}
           className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          ＋ 拡大
+          {t('diagram.zoomIn')}
         </button>
         <button
           type="button"
           onClick={zoomReset}
-          aria-label="全体表示（縮尺リセット）"
-          title="全体表示（縮尺リセット）"
+          aria-label={t('diagram.fitAria')}
+          title={t('diagram.fitAria')}
           className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          全体表示
+          {t('diagram.fit')}
         </button>
         <span className="text-xs text-gray-500 tabular-nums" aria-live="polite">
           {Math.round(effectiveScale * 100)}%
@@ -384,7 +387,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
               <rect
                 x={g.x + 8}
                 y={g.y + 3}
-                width={Math.max(28, g.parent.length * 8 + 12)}
+                width={Math.max(28, sampleLabel(g.parent, lang).length * 8 + 12)}
                 height={GROUP_LABEL_H}
                 rx="5"
                 fill={g.color}
@@ -396,7 +399,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                 className="text-[11px] font-semibold"
                 fill="white"
               >
-                {g.parent}
+                {sampleLabel(g.parent, lang)}
               </text>
             </g>
           ))}
@@ -470,7 +473,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                    }
                    return (
                      <text x={lx} y={ly} className="text-[10px] font-mono fill-gray-600 bg-white" textAnchor="middle">
-                       {t.event}
+                       {sampleLabel(t.event, lang)}
                      </text>
                    )
                 })()}
@@ -519,18 +522,18 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                   textAnchor="middle"
                   className={`text-xs font-medium ${isCurrent ? 'fill-blue-800' : 'fill-gray-800'}`}
                 >
-                  {state.name}
+                  {sampleLabel(state.name, lang)}
                 </text>
                 {isInitial && (
                   <g transform={`translate(${x}, ${y - 12})`}>
                     <rect width="30" height="14" rx="4" fill="#16a34a" />
-                    <text x="15" y="10" textAnchor="middle" fill="white" className="text-[8px] font-bold">初期</text>
+                    <text x="15" y="10" textAnchor="middle" fill="white" className="text-[8px] font-bold">{t('legend.initial')}</text>
                   </g>
                 )}
                 {isTerminal && (
                   <g transform={`translate(${x + width - 30}, ${y - 12})`}>
                     <rect width="30" height="14" rx="4" fill="#dc2626" />
-                    <text x="15" y="10" textAnchor="middle" fill="white" className="text-[8px] font-bold">終端</text>
+                    <text x="15" y="10" textAnchor="middle" fill="white" className="text-[8px] font-bold">{t('legend.terminal')}</text>
                   </g>
                 )}
                 {isTerminal && (
@@ -556,28 +559,28 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       <div className="mt-6 flex flex-wrap gap-4 text-xs text-gray-600 border-t pt-4">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#dbeafe] border-2 border-[#2563eb] rounded-sm"></div>
-          <span>現在</span>
+          <span>{t('legend.current')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-2 border-[#16a34a] rounded-sm"></div>
-          <span>初期</span>
+          <span>{t('legend.initial')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-2 border-[#dc2626] rounded-sm"></div>
-          <span>終端</span>
+          <span>{t('legend.terminal')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-t-2 border-[#4f46e5]"></div>
-          <span>遷移済み</span>
+          <span>{t('legend.traversed')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-t-2 border-dashed border-[#16a34a]"></div>
-          <span>遷移可能</span>
+          <span>{t('legend.available')}</span>
         </div>
         {hasGroups && (
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 border border-dashed border-[#6366f1] rounded-sm bg-[#6366f1]/10"></div>
-            <span>親状態（グループ）</span>
+            <span>{t('legend.group')}</span>
           </div>
         )}
       </div>

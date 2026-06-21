@@ -9,10 +9,11 @@ import AnalysisPanel from '../components/AnalysisPanel'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useI18n } from '../i18n/useI18n'
+import { sampleLabel } from '../i18n/sampleLabels'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const currentStateFromStore = useSimulationStore(state => state.currentState)
@@ -33,9 +34,9 @@ export default function DetailPage() {
 
   useEffect(() => {
     if (machine) {
-      initForMachine(machine.initial_state)
+      initForMachine(machine.initial_state, t('sim.initialLog'))
     }
-  }, [machine, initForMachine])
+  }, [machine, initForMachine, t])
 
   const currentState = currentStateFromStore ?? machine?.initial_state
 
@@ -76,7 +77,7 @@ export default function DetailPage() {
         <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700">
           {t('detail.back')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{sampleLabel(machine.name, lang)}</h1>
         <button
           onClick={handleExport}
           className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
@@ -131,7 +132,7 @@ export default function DetailPage() {
             {machine.states.map(s => (
               <div key={s.id} className="flex items-center justify-between text-sm">
                 <span className={`font-medium ${s.name === (currentState ?? machine.initial_state) ? 'text-blue-600' : 'text-gray-800'}`}>
-                  {s.name}{s.name === machine.initial_state ? ` (${t('detail.initialTag')})` : ''}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
+                  {sampleLabel(s.name, lang)}{s.name === machine.initial_state ? ` (${t('detail.initialTag')})` : ''}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
                 </span>
                 {s.description && <span className="text-gray-500 text-xs">{s.description}</span>}
               </div>
@@ -144,7 +145,7 @@ export default function DetailPage() {
           <div className="space-y-2">
             {machine.transitions.map(t => (
               <div key={t.id} className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
-                {t.from_state} --[{t.event}]--&gt; {t.to_state}
+                {sampleLabel(t.from_state, lang)} --[{sampleLabel(t.event, lang)}]--&gt; {sampleLabel(t.to_state, lang)}
               </div>
             ))}
           </div>
