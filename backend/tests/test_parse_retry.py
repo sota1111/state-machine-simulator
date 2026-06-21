@@ -22,12 +22,28 @@ def get_auth_cookie():
     return {"auth_token": token}
 
 
+def _make_api_error(cls, code, message):
+    # Build a google-genai error WITHOUT calling its __init__: the constructor
+    # signature/internals differ across SDK versions (older versions accept a
+    # response_json dict, newer ones expect a response object with body_segments).
+    # nlp.py only relies on isinstance(...) and ``.code`` / ``str(e)``, so we set
+    # those attributes directly to stay version-agnostic.
+    err = cls.__new__(cls)
+    err.code = code
+    err.message = message
+    err.status = None
+    err.response = None
+    err.details = None
+    err.args = (f"{code} {message}",)
+    return err
+
+
 def _client_error(code, message):
-    return gerrors.ClientError(code, {"error": {"code": code, "message": message}})
+    return _make_api_error(gerrors.ClientError, code, message)
 
 
 def _server_error(code, message):
-    return gerrors.ServerError(code, {"error": {"code": code, "message": message}})
+    return _make_api_error(gerrors.ServerError, code, message)
 
 
 @pytest.fixture
