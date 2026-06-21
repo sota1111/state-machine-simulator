@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { parseText, createModel } from '../api'
-import type { ParseResponse } from '../types'
+import type { ParseResponse, StateMachine } from '../types'
 import { useI18n } from '../i18n/useI18n'
+import StateDiagram from '../components/StateDiagram'
 
 type Mode = 'ai' | 'manual'
 
@@ -57,6 +58,35 @@ export default function InputPage() {
       setError(err.response?.data?.detail ?? err.message)
     }
   })
+
+  // Adapt an AI parse result (no IDs) into a full StateMachine so it can be
+  // previewed with the StateDiagram component. State `id` is set to the state
+  // name so transitions (which reference state names) resolve to the same node keys.
+  const previewMachine: StateMachine | null = parsed
+    ? {
+        id: 'preview',
+        name: parsed.name,
+        description: parsed.description ?? '',
+        initial_state: parsed.initial_state,
+        is_sample: false,
+        created_at: '',
+        updated_at: '',
+        states: parsed.states.map(s => ({
+          id: s.name,
+          machine_id: 'preview',
+          name: s.name,
+          description: s.description ?? '',
+          is_terminal: s.is_terminal ?? false,
+        })),
+        transitions: parsed.transitions.map((tr, i) => ({
+          id: `t${i}`,
+          machine_id: 'preview',
+          from_state: tr.from_state,
+          to_state: tr.to_state,
+          event: tr.event,
+        })),
+      }
+    : null
 
   const handleSaveParsed = () => {
     if (!parsed) return
@@ -324,6 +354,13 @@ export default function InputPage() {
               ))}
             </div>
           </div>
+
+          {previewMachine && previewMachine.states.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.diagram')}</p>
+              <StateDiagram machine={previewMachine} />
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button

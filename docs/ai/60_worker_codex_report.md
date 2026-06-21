@@ -1,46 +1,47 @@
 # Worker Report
 
 ## Summary
-READY_FOR_REVIEW
+SOT-986 verification completed. The frontend quality gates all pass, and no code fixes were required.
 
-Verified SOT-976 sample parent-state seed refresh. Backend lint, backend tests,
-backend import checks, explicit reconcile sanity checks, and optional frontend
-checks all pass. No fixes were required.
+`previewMachine` in `frontend/src/pages/InputPage.tsx` satisfies the full `StateMachine` shape required by `StateDiagram`: model metadata fields are present, each preview state has `id`, `machine_id`, `name`, `description`, and `is_terminal`, and each preview transition has `id`, `machine_id`, `from_state`, `to_state`, and `event`.
 
-The implemented reconcile behavior refreshes changed existing sample docs in
-place while keeping insert-only idempotence for unchanged samples. A stale flat
-stored sample gains `parent` grouping after reseed, duplicate sample docs are
-not created, and non-sample user machines are not touched.
+`git diff main...HEAD` is empty in this checkout. The implemented SOT-986 changes are present as working-tree changes, and the reviewed working-tree code diff is limited to the intended `InputPage.tsx` preview diagram integration.
 
 ## Changed Files
-- `docs/ai/60_worker_codex_report.md` - replaced the prior stale investigation report with this verification report.
+- `docs/ai/60_worker_codex_report.md` - replaced stale investigation content with this verification report.
 
 No production or test code changes were made by this verification pass.
 
 ## Commands Run
-- `cd backend && ruff check app tests` -> exit 0.
-- `cd backend && APP_ENV=test .venv/bin/python -m pytest` -> exit 0; 64 passed, 30 warnings.
-- `cd backend && APP_ENV=test .venv/bin/python -c "import app.main"` -> exit 0.
-- `cd backend && APP_ENV=production GCP_PROJECT_ID="" .venv/bin/python -c "import app.seed; import app.main"` -> exit 0.
-- `cd backend && APP_ENV=test .venv/bin/python - <<'PY' ... reconcile sanity script ... PY` -> exit 0; verified idempotent reseed returns 0, flat stored sample gains `parent`, no duplicate sample docs, and user machines remain untouched.
-- `cd frontend && npm run lint` -> exit 0.
-- `cd frontend && npm run typecheck` -> exit 0.
-- `cd frontend && npm run test` -> exit 0; 3 test files passed, 20 tests passed.
+- `git status --short && git branch --show-current` from repo root: passed; branch is `feat/SOT-986-ai-parse-diagram`; working tree has modified docs reports and `frontend/src/pages/InputPage.tsx`.
+- `sed -n '1,220p' docs/ai/50_worker_gemini_report.md` from repo root: passed; reviewed implementation handoff context.
+- `rg -n "export interface StateMachine|type StateMachine|interface StateMachine|StateDiagram|previewMachine|ParseResponse" frontend/src` from repo root: passed; located relevant types and component usage.
+- `sed -n '1,130p' frontend/src/types/index.ts` from repo root: passed; verified required `StateMachine`, `State`, `Transition`, and `ParseResponse` fields.
+- `sed -n '1,140p' frontend/src/pages/InputPage.tsx && sed -n '330,385p' frontend/src/pages/InputPage.tsx` from repo root: passed; inspected `previewMachine` construction and diagram render placement.
+- `sed -n '1,220p' frontend/src/components/StateDiagram.tsx` from repo root: passed; inspected `StateDiagram` prop type and state/transition usage.
+- `git diff --stat main...HEAD` from repo root: passed; no committed branch diff shown.
+- `git diff --name-status main...HEAD` from repo root: passed; no committed branch diff shown.
+- `git diff main...HEAD -- frontend/src/pages/InputPage.tsx` from repo root: passed; no committed branch diff shown.
+- `git diff --stat` from repo root: passed; working-tree diff contains docs reports and `frontend/src/pages/InputPage.tsx`.
+- `git diff --name-status` from repo root: passed; working-tree modified files are `docs/ai/50_worker_gemini_report.md`, `docs/ai/60_worker_codex_report.md`, and `frontend/src/pages/InputPage.tsx`.
+- `git diff -- frontend/src/pages/InputPage.tsx` from repo root: passed; reviewed implementation diff.
+- `npm run lint` in `frontend/`: passed.
+- `npm run typecheck` in `frontend/`: passed.
+- `npm test` in `frontend/`: passed. Vitest reported 3 test files passed, 21 tests passed.
+- `npm run build` in `frontend/`: passed. Vite emitted a chunk-size warning for `dist/assets/index-XhOjiRoT.js` at 686.34 kB.
 
 ## Acceptance Criteria
-- [x] Backend ruff check is clean.
-- [x] Full backend pytest suite passes.
-- [x] `APP_ENV=test` import of `app.main` is clean.
-- [x] Production import of `app.seed` and `app.main` with empty `GCP_PROJECT_ID` is clean; Firestore client is not constructed on import.
-- [x] Reconcile logic is idempotent for unchanged samples.
-- [x] A flat no-parent stored sample is refreshed to gain `parent`.
-- [x] Refresh does not create duplicate sample docs.
-- [x] User machines are untouched, including a non-sample machine with the same name as a sample.
-- [x] Optional frontend lint/typecheck/test checks pass.
+- [x] lint pass
+- [x] typecheck pass
+- [x] test pass
+- [x] build pass
+- [x] 差分はSOT-986のスコープ内のみ
 
 ## Risks
-- Existing Firestore data refresh will execute only when `seed_firestore_samples()` runs in production startup. If production startup suppresses seed execution or lacks Firestore write permissions, stale sample docs would remain outside this code path.
-- The backend test run emitted existing deprecation warnings from FastAPI `on_event`, Starlette test-client cookie handling, and `google._upb` Python 3.14 compatibility notices. These did not affect SOT-976 verification.
+- `git diff main...HEAD` is empty because the implementation appears to be uncommitted in the working tree. I reviewed the working-tree diff to verify the actual code changes.
+- `docs/ai/50_worker_gemini_report.md` was already modified before this verification pass and was not changed by Codex.
+- The build chunk-size warning is unrelated to SOT-986 and did not fail the build.
+- No browser/manual visual verification was performed; verification was via static review plus frontend gates.
 
 ## Next Action
 READY_FOR_REVIEW
