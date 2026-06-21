@@ -1,16 +1,18 @@
-import google.generativeai as genai
-from google.api_core import exceptions as gexc
 import os
 import json
 import logging
 import random
 import time
 
+from google.genai import errors as gerrors
+from google.genai import types as gtypes
+
+from .ai_client import gemini_available, get_genai_client, get_model_name
+
 logger = logging.getLogger(__name__)
 
 PARSE_MAX_RETRIES = int(os.getenv("PARSE_MAX_RETRIES", "3"))
 PARSE_RETRY_BASE_DELAY = float(os.getenv("PARSE_RETRY_BASE_DELAY", "0.5"))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
 class APIKeyNotConfiguredError(Exception):
     pass
@@ -26,30 +28,38 @@ class AIParseError(RuntimeError):
     even after exhausting the parse retries."""
     pass
 
-def _call_with_retry(model, prompt):
+def _call_with_retry(generate):
     """
-    Call the Gemini API with exponential backoff retry.
+    Call the Vertex AI (google-genai) generation with exponential backoff retry.
 
-    Maps google-api-core exceptions to the project's transport-error semantics:
-    - ResourceExhausted (429) -> AIRateLimitError (after retries exhausted)
-    - ServiceUnavailable / DeadlineExceeded / InternalServerError / any 5xx
-      GoogleAPICallError -> AIServiceUnavailableError (after retries exhausted)
-    - other 4xx GoogleAPICallError -> non-retryable RuntimeError("Gemini API error: ...")
+    ``generate`` is a zero-arg callable returning the SDK response.
+
+    Maps google-genai SDK errors to the project's transport-error semantics:
+    - ClientError with code 429 (resource exhausted) -> AIRateLimitError (after retries)
+    - ServerError (any 5xx) -> AIServiceUnavailableError (after retries)
+    - other ClientError (4xx) -> non-retryable RuntimeError("Gemini API error: ...")
     """
     for attempt in range(PARSE_MAX_RETRIES + 1):
         try:
-            return model.generate_content(prompt)
-        except gexc.ResourceExhausted as e:
-            if attempt == PARSE_MAX_RETRIES:
-                logger.error(f"AI API retry exhausted after {attempt} retries: {e}")
-                raise AIRateLimitError(
-                    f"AI解析のリクエスト制限に達しました。しばらく待ってから再試行してください。({str(e)})"
-                )
-            delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
-            logger.warning(f"AI API rate limit (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s...")
-            time.sleep(delay)
+            return generate()
+        except gerrors.ClientError as e:
+            code = getattr(e, "code", None)
+            if code == 429:
+                # Rate limit (quota / resource exhausted)
+                if attempt == PARSE_MAX_RETRIES:
+                    logger.error(f"AI API retry exhausted after {attempt} retries: {e}")
+                    raise AIRateLimitError(
+                        f"AI解析のリクエスト制限に達しました。しばらく待ってから再試行してください。({str(e)})"
+                    )
+                delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
+                logger.warning(f"AI API rate limit (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s...")
+                time.sleep(delay)
+            else:
+                # Other 4xx errors are not retried
+                logger.error(f"Gemini API status error: {code} - {e}")
+                raise RuntimeError(f"Gemini API error: {e}")
 
-        except (gexc.ServiceUnavailable, gexc.DeadlineExceeded, gexc.InternalServerError) as e:
+        except gerrors.ServerError as e:
             # 5xx-equivalent transport errors
             if attempt == PARSE_MAX_RETRIES:
                 logger.error(f"AI API retry exhausted (5xx) after {attempt} retries: {e}")
@@ -59,24 +69,6 @@ def _call_with_retry(model, prompt):
             delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
             logger.warning(f"AI API 5xx error (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s...")
             time.sleep(delay)
-
-        except gexc.GoogleAPICallError as e:
-            # Generic Google API error: retry on 5xx, fail fast on 4xx.
-            status_code = getattr(e, "code", None)
-            code_value = getattr(status_code, "value", status_code)
-            if isinstance(code_value, int) and code_value >= 500:
-                if attempt == PARSE_MAX_RETRIES:
-                    logger.error(f"AI API retry exhausted (5xx) after {attempt} retries: {code_value}")
-                    raise AIServiceUnavailableError(
-                        f"AI解析サービスでサーバーエラーが発生しました({code_value})。しばらく待ってから再試行してください。"
-                    )
-                delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
-                logger.warning(f"AI API 5xx error (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {code_value}. Retrying in {delay:.2f}s...")
-                time.sleep(delay)
-            else:
-                # 4xx errors (except ResourceExhausted) are not retried
-                logger.error(f"Gemini API status error: {code_value} - {e}")
-                raise RuntimeError(f"Gemini API error: {e}")
 
 def _parse_response(response) -> dict:
     """
@@ -131,14 +123,18 @@ def parse_natural_language(text: str) -> dict:
     Returns a dict matching StateMachineCreate schema.
     Raises ValueError on parse failure.
     Raises RuntimeError on API failure (or specialized AI errors).
+
+    AI calls go through Vertex AI (google-genai) when GOOGLE_GENAI_USE_VERTEXAI is
+    enabled (Cloud Run service-account ADC); otherwise an API-key client for local dev.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    if not gemini_available():
         raise APIKeyNotConfiguredError(
-            "GEMINI_API_KEY が設定されていません。AI解析機能を使用するには .env ファイルにAPIキーを設定してください。手動モードでステートマシンを作成することもできます。"
+            "AI解析機能が未設定です。本番では Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true)、"
+            "ローカルでは GEMINI_API_KEY を設定してください。手動モードでステートマシンを作成することもできます。"
         )
 
-    genai.configure(api_key=api_key)
+    client = get_genai_client()
+    model_name = get_model_name()
 
     system_prompt = """You are an expert at analyzing state machine specifications written in natural language.
 Extract all states, events, and transitions. Follow these rules:
@@ -161,13 +157,17 @@ Return ONLY a JSON object (no markdown, no prose) with exactly this shape:
 }
 Every transition's from_state and to_state must match a state name. Use snake_case for events."""
 
-    model = genai.GenerativeModel(
-        GEMINI_MODEL,
+    config = gtypes.GenerateContentConfig(
         system_instruction=system_prompt,
-        generation_config={"response_mime_type": "application/json"},
+        response_mime_type="application/json",
     )
 
     prompt = f"Extract the state machine from this description:\n\n{text}"
+
+    def _generate():
+        return client.models.generate_content(
+            model=model_name, contents=prompt, config=config
+        )
 
     # Retry loop covering "API call succeeded but response is unparseable / structurally
     # invalid". Transport-level errors are already retried inside _call_with_retry; here we
@@ -175,7 +175,7 @@ Every transition's from_state and to_state must match a state name. Use snake_ca
     # generation does not surface as a hard failure to the user.
     for attempt in range(PARSE_MAX_RETRIES + 1):
         try:
-            response = _call_with_retry(model, prompt)
+            response = _call_with_retry(_generate)
 
             result = _parse_response(response)
             logger.info("Successfully parsed state machine after potential retries")
