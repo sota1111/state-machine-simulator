@@ -9,8 +9,8 @@ interface SimulationState {
   setCurrentState: (state: string) => void
   addVisitedTransition: (transitionId: string) => void
   addLog: (message: string) => void
-  reset: (initialState: string) => void
-  initForMachine: (initialState: string) => void
+  reset: (initialState: string, label?: string) => void
+  initForMachine: (initialState: string, label?: string) => void
   addStep: (transitionId: string, fromState: string, event: string, nextState: string) => void
 }
 
@@ -30,16 +30,16 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
   addLog: (message) => set((state) => ({ log: [...state.log, message] })),
 
-  reset: (initialState) => set({
+  reset: (initialState, label) => set({
     currentState: initialState,
     visitedTransitionIds: [],
-    log: [`リセット → 初期状態: ${initialState}`]
+    log: [`${label ?? 'リセット → 初期状態'}: ${initialState}`]
   }),
 
-  initForMachine: (initialState) => set({
+  initForMachine: (initialState, label) => set({
     currentState: initialState,
     visitedTransitionIds: [],
-    log: [`初期状態: ${initialState}`]
+    log: [`${label ?? '初期状態'}: ${initialState}`]
   }),
 
   addStep: (transitionId, fromState, event, nextState) =>

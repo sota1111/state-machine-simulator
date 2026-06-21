@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import type { StateMachine } from '../types'
+import { I18nProvider } from '../i18n/I18nProvider'
 import StateDiagram from './StateDiagram'
 
 function sampleMachine(): StateMachine {
@@ -27,9 +28,17 @@ function svgWidth(): number {
   return parseFloat(svg.getAttribute('width') || '0')
 }
 
+function renderDiagram() {
+  return render(
+    <I18nProvider>
+      <StateDiagram machine={sampleMachine()} />
+    </I18nProvider>,
+  )
+}
+
 describe('StateDiagram zoom controls (SOT-948)', () => {
   it('renders 拡大 / 縮小 / 全体表示 buttons and a zoom percentage', () => {
-    render(<StateDiagram machine={sampleMachine()} />)
+    renderDiagram()
     expect(screen.getByLabelText('拡大')).toBeInTheDocument()
     expect(screen.getByLabelText('縮小')).toBeInTheDocument()
     expect(screen.getByLabelText('全体表示（縮尺リセット）')).toBeInTheDocument()
@@ -37,7 +46,7 @@ describe('StateDiagram zoom controls (SOT-948)', () => {
   })
 
   it('拡大 increases the rendered diagram size and percentage', () => {
-    render(<StateDiagram machine={sampleMachine()} />)
+    renderDiagram()
     const before = svgWidth()
     fireEvent.click(screen.getByLabelText('拡大'))
     expect(svgWidth()).toBeGreaterThan(before)
@@ -45,7 +54,7 @@ describe('StateDiagram zoom controls (SOT-948)', () => {
   })
 
   it('縮小 decreases the rendered diagram size', () => {
-    render(<StateDiagram machine={sampleMachine()} />)
+    renderDiagram()
     const before = svgWidth()
     fireEvent.click(screen.getByLabelText('縮小'))
     expect(svgWidth()).toBeLessThan(before)
@@ -53,7 +62,7 @@ describe('StateDiagram zoom controls (SOT-948)', () => {
   })
 
   it('全体表示 resets back to the fit (100%) scale after manual zoom', () => {
-    render(<StateDiagram machine={sampleMachine()} />)
+    renderDiagram()
     fireEvent.click(screen.getByLabelText('拡大'))
     expect(screen.getByText('110%')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('全体表示（縮尺リセット）'))
