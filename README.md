@@ -206,12 +206,6 @@ Yellow --[timer_expire]--> Red
 ... (他)
 ```
 
-### 9. ai-dev-control-plane Issue実行パイプライン
-Issue実行状態 × Worker状態 × キュー状態（autonomous runner）を、`parent`（Webhookイベント種別 / Issue優先度 / Queue状態 / Worker状態 / Linear Issue状態 等）でグループ化した階層モデル。
-
-### 10. ai-dev-control-plane アプリ配備・認証状態
-アプリ種別 × 認証方式 × Cloud Run公開状態 × Secret状態を `parent` でグループ化した階層モデル。
-
 ## 動作確認手順
 
 ### バックエンドAPIの確認
