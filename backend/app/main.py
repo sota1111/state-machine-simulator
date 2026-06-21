@@ -13,13 +13,6 @@ logger = logging.getLogger(__name__)
 
 APP_ENV = os.getenv("APP_ENV", "local")
 
-# Setup based on environment
-if APP_ENV != "production":
-    from .database import engine, Base
-    from .seed import seed_sample_data
-    # Create database tables for local development
-    Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="State Machine Simulator API", version="1.0.0")
 
 CORS_ORIGINS_STR = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
@@ -62,17 +55,15 @@ def _check_auth_config():
 async def startup_event():
     _check_auth_config()
     if APP_ENV != "production":
-        from .database import SessionLocal
-        db = SessionLocal()
+        from .repositories.memory_repository import get_memory_repository
+        from .data.sample_state_machines import SAMPLE_STATE_MACHINES
         try:
-            seed_sample_data(db)
-            logger.info("Sample data seeded successfully")
+            added = get_memory_repository().seed_samples(SAMPLE_STATE_MACHINES)
+            logger.info(f"Seeded {added} sample state machines into in-memory store")
         except Exception as e:
-            logger.error(f"Failed to seed sample data: {e}")
-        finally:
-            db.close()
+            logger.error(f"Failed to seed in-memory sample data: {e}")
     else:
-        logger.info("Running in production mode (APP_ENV=production). Skipping SQLite seed.")
+        logger.info("Running in production mode (APP_ENV=production). Using Firestore persistence.")
         from .seed import seed_firestore_samples
         try:
             count = seed_firestore_samples()

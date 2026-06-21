@@ -4,11 +4,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend/data:/app/data
     environment:
       - APP_ENV=local
-      - DATABASE_URL=sqlite:////app/data/app.db
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - LOG_LEVEL=INFO
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

@@ -30,10 +30,5 @@ def get_repository() -> Iterator[StateMachineRepository]:
         from .repositories.firestore_repository import FirestoreStateMachineRepository
         yield FirestoreStateMachineRepository()
     else:
-        from .database import SessionLocal
-        from .repositories.sqlite_repository import SQLiteStateMachineRepository
-        db = SessionLocal()
-        try:
-            yield SQLiteStateMachineRepository(db)
-        finally:
-            db.close()
+        from .repositories.memory_repository import get_memory_repository
+        yield get_memory_repository()
