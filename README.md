@@ -28,7 +28,7 @@ docker compose up --build
 
 **認証情報が不要な理由:**
 - `GEMINI_API_KEY` 未設定時は「手動作成モード」でステートマシンを作成できます
-- ローカルデータはSQLiteに保存されます（GCP不要）
+- ローカルデータはインメモリに保持されます（GCP不要・ファイルDB不要）
 - AIによる自然言語解析が不要な場合は、APIキーなしで全機能を利用可能です
 
 ## 起動方法
@@ -51,8 +51,7 @@ cp .env.example .env
 ```bash
 cd backend
 pip install -r requirements.txt
-# データベースマイグレーション（SQLite）
-# python -m alembic upgrade head
+# 永続化はローカル/テストではインメモリ、本番はFirestore（ファイルDB不要）
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -114,22 +113,22 @@ docker-compose up
 ## アーキテクチャ概要
 
 ```
-フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  SQLite / Firestore
+フロントエンド (React + Vite)  →  バックエンド (FastAPI)  →  In-Memory / Firestore
          ↓                               ↓
    HTML/SVG (状態遷移図)          Google Gemini API
    Recharts (グラフ)                (自然言語解析)
 ```
 
 - **フロントエンド**: React 18 + TypeScript + Vite + TanStack Query + Tailwind CSS
-- **バックエンド**: Python 3.11 + FastAPI + SQLAlchemy 2.x
-- **データベース**: SQLite（`backend/data/app.db`）※SQLite はローカル開発用、本番（Cloud Run, APP_ENV=production）は Firestore。
+- **バックエンド**: Python 3.11 + FastAPI
+- **データベース**: 本番（Cloud Run, `APP_ENV=production`）は Firestore。ローカル/テストはインメモリ（ファイルDB不要）。
 - **NLP**: Google Gemini API（gemini-2.0-flash、`GEMINI_MODEL` で変更可）
 
 ## 制約事項
 
 - 自然言語解析機能（`POST /api/parse`）にはGEMINI_API_KEYが必要
 - APIキーなしでも、手動でモデル作成・編集・シミュレーションは可能（現バージョンでは直接API経由）
-- 本番は Firestore を使用する（SQLiteはローカル開発用）
+- 本番は Firestore を使用する（ローカル/テストはインメモリ。プロセス再起動で揮発する）
 - 同時接続数が多い場合はパフォーマンスが低下する可能性がある
 
 ## 今後追加予定の機能
@@ -298,7 +297,6 @@ bash scripts/gcp/deploy-service.sh
 | `APP_ENV` | 実行環境（local / production） | Yes | `local` |
 | `GEMINI_API_KEY` | Google Gemini API キー | No（なければAI機能skip） | - |
 | `GEMINI_MODEL` | 使用するGeminiモデル | No | `gemini-2.0-flash` |
-| `DATABASE_URL` | SQLite DB パス（ローカルのみ） | ローカルのみ | - |
 | `GCP_PROJECT_ID` | GCP プロジェクト ID | 本番必須 | - |
 | `GCP_REGION` | GCP リージョン | 本番必須 | `asia-northeast1` |
 | `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
@@ -455,7 +453,7 @@ docker run -p 8080:8080 state-machine-simulator-frontend
 
 ### データ永続化について
 
-ローカル開発環境では SQLite を使用しますが、本番環境（Cloud Run）では Firestore を使用します。`APP_ENV=production` に設定すると自動的に切り替わり、`GCP_PROJECT_ID` が必須となります。本番環境は `/tmp` SQLite には依存しません。
+ローカル開発・テストではインメモリ永続化（ファイルDB不要）、本番環境（Cloud Run）では Firestore を使用します。`APP_ENV=production` に設定すると自動的に切り替わり、`GCP_PROJECT_ID` が必須となります。SQLite/SQLAlchemy への依存は廃止され、Cloud Run 上でファイルDBを開く処理は行いません（SOT-977）。
 
 ### 環境変数
 
