@@ -4,9 +4,17 @@ import { useNavigate } from 'react-router-dom'
 import { parseText, createModel } from '../api'
 import type { ParseResponse, StateMachine } from '../types'
 import { useI18n } from '../i18n/useI18n'
+import type { MessageKey } from '../i18n/messages'
 import StateDiagram from '../components/StateDiagram'
 
 type Mode = 'ai' | 'manual'
+
+// AI入力モードの入力例プリセット（SOT-1020 / 提案4）。
+const AI_PRESETS: { labelKey: MessageKey; textKey: MessageKey }[] = [
+  { labelKey: 'input.preset.support', textKey: 'input.preset.support.text' },
+  { labelKey: 'input.preset.order', textKey: 'input.preset.order.text' },
+  { labelKey: 'input.preset.approval', textKey: 'input.preset.approval.text' },
+]
 
 interface ManualState {
   name: string
@@ -154,6 +162,20 @@ export default function InputPage() {
       {/* AI mode */}
       {mode === 'ai' && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+          {/* 入力例プリセット（SOT-1020 / 提案4）。クリックで textarea を埋める。 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">{t('input.presetsLabel')}</span>
+            {AI_PRESETS.map(p => (
+              <button
+                key={p.labelKey}
+                type="button"
+                onClick={() => { setText(t(p.textKey)); setError(null) }}
+                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                {t(p.labelKey)}
+              </button>
+            ))}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t('input.aiLabel')}
