@@ -4,7 +4,18 @@
 
 ## プロジェクト概要
 
-状態遷移仕様は設計書や要求仕様書に自然言語で記載されることが多く、レビューや設計時に状態や遷移の抜け漏れが発生しやすい。本ツールは自然言語入力からAI（Google Gemini API）を使って状態遷移モデルを自動生成し、可視化・シミュレーションを可能にする。
+状態遷移仕様は設計書や要求仕様書に自然言語で記載されることが多く、レビューや設計時に状態や遷移の抜け漏れが発生しやすい。本ツールは自然言語入力からAI（Google Gemini / Vertex AI）を使って状態遷移モデルを自動生成し、可視化・シミュレーションを可能にする。
+
+### 主な機能
+
+- **モデル生成**: 自然言語入力からAI解析（`/input` の AIモード）、手動作成（manualモード）、コード/手順書からのインポート（importモード）
+- **可視化**: 状態遷移図（SVG, 親状態によるグループ化・縦/横切替）とダッシュボードのグラフ
+- **シミュレーション**: 手動ステップ実行＋イベント列の一括再生（アニメーション）
+- **設計レビュー**: カバレッジ分析（到達不能・デッドロック・未定義遷移など）とワンクリック修正、レビューコメント
+- **テストケース自動生成**: 全遷移網羅などのテストケース生成とシミュレータ実行
+- **バージョン履歴**: 更新ごとのスナップショットと差分表示
+- **エクスポート**: JSON / PlantUML 形式
+- **認証**: Firebase Identity Toolkit によるサーバーサイド認証、UI は日本語/英語切替に対応
 
 ## 認証情報なし開発クイックスタート
 
@@ -75,7 +86,7 @@ npm run dev
 cp .env.example .env
 # .envにGEMINI_API_KEYを設定
 
-docker-compose up
+docker compose up --build
 ```
 
 ## データ構造
@@ -122,7 +133,7 @@ docker-compose up
 - **フロントエンド**: React 18 + TypeScript + Vite + TanStack Query + Tailwind CSS
 - **バックエンド**: Python 3.11 + FastAPI
 - **データベース**: 本番（Cloud Run, `APP_ENV=production`）は Firestore。ローカル/テストはインメモリ（ファイルDB不要）。
-- **NLP**: Google Gemini API（gemini-2.0-flash、`GEMINI_MODEL` で変更可）
+- **NLP**: google-genai 経由で Gemini（既定 `gemini-2.5-flash`、`GEMINI_MODEL` で変更可）。本番は Vertex AI モード（`GOOGLE_GENAI_USE_VERTEXAI=true`、APIキー不要）、ローカルは API キー（`GEMINI_API_KEY`）も利用可。
 
 ## 制約事項
 
@@ -133,16 +144,16 @@ docker-compose up
 
 ## 今後追加予定の機能
 
-- [ ] 手動での状態遷移モデル作成UI（フォーム入力）
-- [ ] モデルのエクスポート機能（JSON / PlantUML形式）
+- [x] 手動での状態遷移モデル作成UI（フォーム入力）
+- [x] モデルのエクスポート機能（JSON / PlantUML形式）
 - [x] ユーザー認証・マルチユーザー対応
-- [ ] 状態遷移テストケース自動生成
+- [x] 状態遷移テストケース自動生成
 - [ ] Webhook通知機能
 - [ ] 複数モデルの比較機能
 
 ## サンプルシナリオ
 
-起動直後から以下のサンプルデータ（10件）が利用できます。状態を親（スーパー）状態でグループ化する階層表示にも対応しており、サンプル 9・10 は `parent` でグループ化された複雑なモデルです。
+起動直後から以下のサンプルデータ（8件）が利用できます。状態を親（スーパー）状態でグループ化する階層表示にも対応しており、サンプル 6〜8（ロボット保守・半導体製造装置・SaaS営業）は `parent` でグループ化された複雑なモデルです。
 
 ### 1. ログインフロー (Login Flow)
 ```
@@ -211,7 +222,7 @@ Yellow --[timer_expire]--> Red
 
 1. バックエンドを起動: `cd backend && uvicorn app.main:app --reload`
 2. http://localhost:8000/docs を開く
-3. `GET /api/models/` を実行してサンプルデータが10件あることを確認
+3. `GET /api/models/` を実行してサンプルデータが8件あることを確認
 4. サンプルモデルのIDをコピーして `GET /api/models/{id}/analysis` を実行
 
 ### バックエンド自動テストの実行
@@ -226,7 +237,7 @@ pytest
 
 1. フロントエンドを起動: `cd frontend && npm run dev`
 2. http://localhost:5173 を開く
-3. 一覧画面でサンプルデータ10件が表示されることを確認
+3. 一覧画面でサンプルデータ8件が表示されることを確認
 4. いずれかのモデルの「詳細」ボタンをクリック
 5. 状態遷移図（SVG）が表示されることを確認
 6. シミュレーションパネルでイベントボタンをクリックして状態遷移を確認
@@ -295,11 +306,11 @@ bash scripts/gcp/deploy-service.sh
 | 変数名 | 説明 | 必須 | デフォルト |
 |---|---|---|---|
 | `APP_ENV` | 実行環境（local / production） | Yes | `local` |
-| `GEMINI_API_KEY` | Google Gemini API キー | No（なければAI機能skip） | - |
-| `GEMINI_MODEL` | 使用するGeminiモデル | No | `gemini-2.0-flash` |
-| `GCP_PROJECT_ID` | GCP プロジェクト ID | 本番必須 | - |
+| `GOOGLE_GENAI_USE_VERTEXAI` | Vertex AI モード有効化（truthyでAPIキー不要） | 本番推奨 | - |
+| `GEMINI_API_KEY` | Google Gemini API キー（API-keyモード時） | No（なければAI機能skip） | - |
+| `GEMINI_MODEL` | 使用するGeminiモデル | No | `gemini-2.5-flash` |
+| `GCP_PROJECT_ID` | GCP プロジェクト ID（Vertex AI / Firestore） | 本番必須 | - |
 | `GCP_REGION` | GCP リージョン | 本番必須 | `asia-northeast1` |
-| `FIRESTORE_DATABASE` | Firestore DB 名 | No | `(default)` |
 | `CORS_ORIGINS` | CORS許可オリジン（カンマ区切り） | ローカルのみ | `http://localhost:5173` |
 | `LOG_LEVEL` | ログレベル | No | `INFO` |
 | `FIREBASE_WEB_API_KEY` | Firebase Web API キー | Yes (優先) | - |
