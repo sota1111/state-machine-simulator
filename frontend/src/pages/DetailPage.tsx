@@ -76,7 +76,7 @@ export default function DetailPage() {
     URL.revokeObjectURL(url)
   }
 
-  if (machineLoading) return <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
+  if (machineLoading) return <div className="text-center py-12 text-foreground-subtle">{t('common.loading')}</div>
   if (!machine) return <div className="text-center py-12 text-red-500">{t('detail.notFound')}</div>
 
   // Move the event buttons beside the diagram only on PC + vertical direction, and not while editing
@@ -91,13 +91,13 @@ export default function DetailPage() {
       <div className="flex items-center justify-end gap-2">
         <button
           onClick={handleExport}
-          className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 border border-border text-foreground-muted rounded-lg text-sm hover:bg-surface-muted transition-colors"
         >
           {t('detail.exportJson')}
         </button>
         <button
           onClick={handleExportPuml}
-          className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 border border-border text-foreground-muted rounded-lg text-sm hover:bg-surface-muted transition-colors"
         >
           {t('detail.exportPuml')}
         </button>
@@ -105,17 +105,17 @@ export default function DetailPage() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/')}
-          className="text-gray-500 hover:text-gray-700 whitespace-nowrap"
+          className="text-foreground-subtle hover:text-foreground-muted whitespace-nowrap"
         >
           {t('detail.back')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900 whitespace-nowrap truncate min-w-0">
+        <h1 className="text-2xl font-bold text-foreground whitespace-nowrap truncate min-w-0">
           {sampleLabel(machine.name, lang)}
         </h1>
       </div>
 
       {machine.description && (
-        <p className="text-gray-600">{machine.description}</p>
+        <p className="text-foreground-muted">{machine.description}</p>
       )}
 
       {/* On PC with vertical transition direction (and not editing), the diagram is tall and
@@ -123,10 +123,10 @@ export default function DetailPage() {
       <div className={sideBySide ? 'flex flex-row gap-6 items-start' : 'space-y-6'}>
         <div className={`space-y-4 ${sideBySide ? 'flex-1 min-w-0' : ''}`}>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-700">{t('detail.diagram')}</h2>
+            <h2 className="font-semibold text-foreground-muted">{t('detail.diagram')}</h2>
             <button
               onClick={() => setIsEditing(v => !v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-surface-muted text-foreground-muted hover:bg-surface-muted' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
             >
               {isEditing ? t('detail.endEdit') : t('detail.editDiagram')}
             </button>
@@ -156,25 +156,25 @@ export default function DetailPage() {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-700 mb-3">{t('detail.statesList')}</h3>
+        <div className="bg-surface rounded-lg border border-border p-4">
+          <h3 className="font-semibold text-foreground-muted mb-3">{t('detail.statesList')}</h3>
           <div className="space-y-2">
             {machine.states.map(s => (
               <div key={s.id} className="flex items-center justify-between text-sm">
-                <span className={`font-medium ${s.name === (currentState ?? machine.initial_state) ? 'text-blue-600' : 'text-gray-800'}`}>
+                <span className={`font-medium ${s.name === (currentState ?? machine.initial_state) ? 'text-blue-600' : 'text-foreground'}`}>
                   {sampleLabel(s.name, lang)}{s.name === machine.initial_state ? ` (${t('detail.initialTag')})` : ''}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
                 </span>
-                {s.description && <span className="text-gray-500 text-xs">{s.description}</span>}
+                {s.description && <span className="text-foreground-subtle text-xs">{s.description}</span>}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-700 mb-3">{t('detail.transitionsList')}</h3>
+        <div className="bg-surface rounded-lg border border-border p-4">
+          <h3 className="font-semibold text-foreground-muted mb-3">{t('detail.transitionsList')}</h3>
           <div className="space-y-2">
             {machine.transitions.map(t => (
-              <div key={t.id} className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
+              <div key={t.id} className="text-xs font-mono text-foreground-muted bg-surface-muted px-2 py-1 rounded">
                 {sampleLabel(t.from_state, lang)} --[{sampleLabel(t.event, lang)}]--&gt; {sampleLabel(t.to_state, lang)}
               </div>
             ))}
@@ -182,10 +182,10 @@ export default function DetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="font-semibold text-gray-700 mb-3">{t('detail.procedure')}</h3>
+      <div className="bg-surface rounded-lg border border-border p-4">
+        <h3 className="font-semibold text-foreground-muted mb-3">{t('detail.procedure')}</h3>
         {procedureSteps.length === 0 ? (
-          <p className="text-sm text-gray-400">{t('detail.procedureEmpty')}</p>
+          <p className="text-sm text-foreground-subtle">{t('detail.procedureEmpty')}</p>
         ) : (
           <ol className="space-y-2">
             {procedureSteps.map((step, i) => (
@@ -193,9 +193,9 @@ export default function DetailPage() {
                 <span className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
                   {i + 1}
                 </span>
-                <span className="text-gray-800">
+                <span className="text-foreground">
                   <span className="font-medium">{sampleLabel(step.from_state, lang)}</span>
-                  <span className="mx-1.5 text-gray-400">—[{sampleLabel(step.event, lang)}]→</span>
+                  <span className="mx-1.5 text-foreground-subtle">—[{sampleLabel(step.event, lang)}]→</span>
                   <span className="font-medium">{sampleLabel(step.to_state, lang)}</span>
                 </span>
               </li>

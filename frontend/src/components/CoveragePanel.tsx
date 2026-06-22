@@ -46,9 +46,9 @@ export default function CoveragePanel({ machine }: Props) {
   ]
 
   return (
-    <div className="bg-surface rounded-lg border border-gray-200 shadow-card p-4 space-y-4 nums">
+    <div className="bg-surface rounded-lg border border-border shadow-card p-4 space-y-4 nums">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-gray-800">{t('coverage.title')}</h3>
+        <h3 className="font-semibold text-foreground">{t('coverage.title')}</h3>
         <span
           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
             clean ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'

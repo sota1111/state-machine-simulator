@@ -21,7 +21,7 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
     <Link
       to={to}
       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-        active ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+        active ? 'bg-blue-600 text-white' : 'text-foreground-muted hover:bg-surface-muted'
       }`}
     >
       {children}
@@ -34,11 +34,11 @@ function Layout() {
   const { t } = useI18n()
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white/90 backdrop-blur shadow-sm border-b border-gray-200 sticky top-0 z-20">
+    <div className="min-h-screen bg-surface-muted flex flex-col">
+      <nav className="bg-surface/90 backdrop-blur shadow-sm border-b border-border sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap shrink-0">
+            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-foreground tracking-tight whitespace-nowrap shrink-0">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-extrabold">FR</span>
               FlowReview
             </Link>
@@ -52,7 +52,7 @@ function Layout() {
                   </div>
                   <button
                     onClick={logout}
-                    className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-foreground-muted hover:bg-surface-muted transition-colors"
                   >
                     {t('nav.logout')}
                   </button>
@@ -74,7 +74,7 @@ function Layout() {
       <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
         <Outlet />
       </main>
-      <footer className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
+      <footer className="border-t border-border py-4 text-center text-xs text-foreground-subtle">
         FlowReview — {t('app.footerTagline')}
       </footer>
     </div>

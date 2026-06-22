@@ -146,7 +146,7 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-surface rounded-lg border border-border p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -163,7 +163,7 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
         >
           {saveMutation.isPending ? '保存中...' : '保存'}
         </button>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-foreground-subtle">
           ノードをドラッグで移動 / 右側の●から別ノードへドラッグで遷移作成
         </span>
       </div>
@@ -173,7 +173,7 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
       )}
 
       <div className="flex flex-col gap-4 lg:flex-row">
-        <div className="overflow-auto border border-gray-100 rounded flex-1">
+        <div className="overflow-auto border border-border rounded flex-1">
           <svg
             ref={svgRef}
             width={width}
@@ -223,7 +223,7 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
                     x={isSelf ? from.x + NODE_WIDTH / 2 : mx}
                     y={isSelf ? from.y - 76 : my - 6}
                     textAnchor="middle"
-                    className="text-[10px] font-mono fill-gray-700"
+                    className="text-[10px] font-mono fill-foreground-muted"
                   >
                     {edge.event || '(イベント未設定)'}
                   </text>
@@ -302,25 +302,25 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
         {/* Inspector panel */}
         <div className="w-full lg:w-72 shrink-0 space-y-3">
           {selectedNode && (
-            <div className="border border-gray-200 rounded p-3 space-y-2">
-              <h4 className="text-sm font-semibold text-gray-700">状態を編集</h4>
-              <label className="block text-xs text-gray-500">名前</label>
+            <div className="border border-border rounded p-3 space-y-2">
+              <h4 className="text-sm font-semibold text-foreground-muted">状態を編集</h4>
+              <label className="block text-xs text-foreground-subtle">名前</label>
               <input
                 aria-label="状態名"
                 type="text"
                 value={selectedNode.name}
                 onChange={(e) => setModel(m => updateNode(m, selectedNode.id, { name: e.target.value }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                className="w-full px-2 py-1 border border-border rounded text-sm"
               />
-              <label className="block text-xs text-gray-500">説明</label>
+              <label className="block text-xs text-foreground-subtle">説明</label>
               <input
                 aria-label="状態の説明"
                 type="text"
                 value={selectedNode.description}
                 onChange={(e) => setModel(m => updateNode(m, selectedNode.id, { description: e.target.value }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                className="w-full px-2 py-1 border border-border rounded text-sm"
               />
-              <label className="flex items-center gap-2 text-sm text-gray-600">
+              <label className="flex items-center gap-2 text-sm text-foreground-muted">
                 <input
                   type="checkbox"
                   checked={selectedNode.is_terminal}
@@ -349,15 +349,15 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
           )}
 
           {selectedEdge && (
-            <div className="border border-gray-200 rounded p-3 space-y-2">
-              <h4 className="text-sm font-semibold text-gray-700">遷移を編集</h4>
-              <label className="block text-xs text-gray-500">イベント名</label>
+            <div className="border border-border rounded p-3 space-y-2">
+              <h4 className="text-sm font-semibold text-foreground-muted">遷移を編集</h4>
+              <label className="block text-xs text-foreground-subtle">イベント名</label>
               <input
                 aria-label="イベント名"
                 type="text"
                 value={selectedEdge.event}
                 onChange={(e) => setModel(m => updateEdgeEvent(m, selectedEdge.id, e.target.value))}
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                className="w-full px-2 py-1 border border-border rounded text-sm"
               />
               <button
                 type="button"
@@ -370,7 +370,7 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
           )}
 
           {!selectedNode && !selectedEdge && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-foreground-subtle">
               ノードまたは遷移を選択すると、ここで編集できます。
             </p>
           )}

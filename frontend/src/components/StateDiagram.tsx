@@ -307,26 +307,26 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   }
 
   return (
-    <div ref={containerRef} className="bg-surface rounded-lg border border-gray-200 shadow-card p-4 overflow-auto">
+    <div ref={containerRef} className="bg-surface rounded-lg border border-border shadow-card p-4 overflow-auto">
       {/* Controls: layout direction toggle + zoom (拡大縮小) */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-gray-500">{t('diagram.direction')}</span>
+        <span className="text-xs text-foreground-subtle">{t('diagram.direction')}</span>
         <button
           type="button"
           onClick={toggleVertical}
           aria-label={isVertical ? t('diagram.toHorizontal') : t('diagram.toVertical')}
           title={isVertical ? t('diagram.toHorizontal') : t('diagram.toVertical')}
-          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-3 py-1 text-sm rounded border border-border text-foreground-muted hover:bg-surface-muted"
         >
           {isVertical ? t('diagram.showVertical') : t('diagram.showHorizontal')}
         </button>
-        <span className="ml-2 text-xs text-gray-500">{t('diagram.zoom')}</span>
+        <span className="ml-2 text-xs text-foreground-subtle">{t('diagram.zoom')}</span>
         <button
           type="button"
           onClick={zoomOut}
           aria-label={t('diagram.zoomOutAria')}
           title={t('diagram.zoomOutAria')}
-          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-3 py-1 text-sm rounded border border-border text-foreground-muted hover:bg-surface-muted"
         >
           {t('diagram.zoomOut')}
         </button>
@@ -335,7 +335,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           onClick={zoomIn}
           aria-label={t('diagram.zoomInAria')}
           title={t('diagram.zoomInAria')}
-          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-3 py-1 text-sm rounded border border-border text-foreground-muted hover:bg-surface-muted"
         >
           {t('diagram.zoomIn')}
         </button>
@@ -344,11 +344,11 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           onClick={zoomReset}
           aria-label={t('diagram.fitAria')}
           title={t('diagram.fitAria')}
-          className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-3 py-1 text-sm rounded border border-border text-foreground-muted hover:bg-surface-muted"
         >
           {t('diagram.fit')}
         </button>
-        <span className="text-xs text-gray-500 tabular-nums" aria-live="polite">
+        <span className="text-xs text-foreground-subtle tabular-nums" aria-live="polite">
           {Math.round(effectiveScale * 100)}%
         </span>
       </div>
@@ -473,7 +473,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                      ly = (from.y + from.height / 2 + to.y + to.height / 2) / 2 + labelOffset - 5
                    }
                    return (
-                     <text x={lx} y={ly} className="text-[10px] font-mono fill-gray-600 bg-white" textAnchor="middle">
+                     <text x={lx} y={ly} className="text-[10px] font-mono fill-foreground-muted bg-surface" textAnchor="middle">
                        {sampleLabel(t.event, lang)}
                      </text>
                    )
@@ -558,7 +558,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-4 text-xs text-gray-600 border-t pt-4">
+      <div className="mt-6 flex flex-wrap gap-4 text-xs text-foreground-muted border-t pt-4">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#dbeafe] border-2 border-[#2563eb] rounded-sm"></div>
           <span>{t('legend.current')}</span>

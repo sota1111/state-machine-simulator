@@ -142,19 +142,19 @@ export default function InputPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">{t('input.title')}</h1>
+      <h1 className="text-2xl font-bold text-foreground">{t('input.title')}</h1>
 
       {/* Mode toggle */}
-      <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+      <div className="flex rounded-lg border border-border overflow-hidden">
         <button
           onClick={() => setMode('ai')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-blue-600 text-white' : 'bg-surface text-foreground-muted hover:bg-surface-muted'}`}
         >
           {t('input.modeAi')}
         </button>
         <button
           onClick={() => setMode('manual')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-blue-600 text-white' : 'bg-surface text-foreground-muted hover:bg-surface-muted'}`}
         >
           {t('input.modeManual')}
         </button>
@@ -162,10 +162,10 @@ export default function InputPage() {
 
       {/* AI mode */}
       {mode === 'ai' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
           {/* 入力例プリセット（SOT-1020 / 提案4）。クリックで textarea を埋める。 */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-gray-500">{t('input.presetsLabel')}</span>
+            <span className="text-xs font-medium text-foreground-subtle">{t('input.presetsLabel')}</span>
             {AI_PRESETS.map(p => (
               <button
                 key={p.labelKey}
@@ -178,14 +178,14 @@ export default function InputPage() {
             ))}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground-muted mb-2">
               {t('input.aiLabel')}
             </label>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t('input.aiPlaceholder')}
-              className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full h-40 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
 
@@ -221,36 +221,36 @@ export default function InputPage() {
 
       {/* Manual mode */}
       {mode === 'manual' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-surface rounded-lg border border-border p-6 space-y-6">
           <div className="grid gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.modelNameReq')}</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-1">{t('input.modelNameReq')}</label>
               <input
                 type="text"
                 value={manualName}
                 onChange={e => setManualName(e.target.value)}
                 placeholder={t('input.modelNamePlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.description')}</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-1">{t('input.description')}</label>
               <input
                 type="text"
                 value={manualDescription}
                 onChange={e => setManualDescription(e.target.value)}
                 placeholder={t('input.descPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('input.initialStateReq')}</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-1">{t('input.initialStateReq')}</label>
               <input
                 type="text"
                 value={manualInitialState}
                 onChange={e => setManualInitialState(e.target.value)}
                 placeholder={t('input.initialPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function InputPage() {
           {/* States */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">{t('input.statesLabelReq')}</label>
+              <label className="text-sm font-medium text-foreground-muted">{t('input.statesLabelReq')}</label>
               <button onClick={addState} className="text-xs text-blue-600 hover:underline">{t('input.add')}</button>
             </div>
             <div className="space-y-2">
@@ -269,16 +269,16 @@ export default function InputPage() {
                     value={s.name}
                     onChange={e => updateState(i, 'name', e.target.value)}
                     placeholder={t('input.statePlaceholder')}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <input
                     type="text"
                     value={s.description}
                     onChange={e => updateState(i, 'description', e.target.value)}
                     placeholder={t('input.stateDescPlaceholder')}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
+                  <label className="flex items-center gap-1 text-xs text-foreground-muted whitespace-nowrap">
                     <input type="checkbox" checked={s.is_terminal} onChange={e => updateState(i, 'is_terminal', e.target.checked)} />
                     {t('input.terminal')}
                   </label>
@@ -291,7 +291,7 @@ export default function InputPage() {
           {/* Transitions */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">{t('input.transitionsLabel')}</label>
+              <label className="text-sm font-medium text-foreground-muted">{t('input.transitionsLabel')}</label>
               <button onClick={addTransition} className="text-xs text-blue-600 hover:underline">{t('input.add')}</button>
             </div>
             <div className="space-y-2">
@@ -300,7 +300,7 @@ export default function InputPage() {
                   <select
                     value={tr.from_state}
                     onChange={e => updateTransition(i, 'from_state', e.target.value)}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">{t('input.fromState')}</option>
                     {stateNames.map(n => <option key={n} value={n}>{n}</option>)}
@@ -310,12 +310,12 @@ export default function InputPage() {
                     value={tr.event}
                     onChange={e => updateTransition(i, 'event', e.target.value)}
                     placeholder={t('input.eventPlaceholder')}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <select
                     value={tr.to_state}
                     onChange={e => updateTransition(i, 'to_state', e.target.value)}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">{t('input.toState')}</option>
                     {stateNames.map(n => <option key={n} value={n}>{n}</option>)}
@@ -342,25 +342,25 @@ export default function InputPage() {
 
       {/* AI parse results */}
       {parsed && mode === 'ai' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">{t('input.parseResult')}</h2>
+        <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
+          <h2 className="font-semibold text-foreground">{t('input.parseResult')}</h2>
 
           <div className="grid gap-3">
             <div>
-              <span className="text-sm font-medium text-gray-500">{t('input.modelNameField')}:</span>
-              <span className="ml-2 text-sm text-gray-900">{parsed.name}</span>
+              <span className="text-sm font-medium text-foreground-subtle">{t('input.modelNameField')}:</span>
+              <span className="ml-2 text-sm text-foreground">{parsed.name}</span>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">{t('input.initialStateField')}:</span>
+              <span className="text-sm font-medium text-foreground-subtle">{t('input.initialStateField')}:</span>
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-sm">{parsed.initial_state}</span>
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.statesList')} ({parsed.states.length})</p>
+            <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.statesList')} ({parsed.states.length})</p>
             <div className="flex flex-wrap gap-2">
               {parsed.states.map(s => (
-                <span key={s.name} className={`px-2 py-1 rounded text-xs ${s.is_terminal ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-800'}`}>
+                <span key={s.name} className={`px-2 py-1 rounded text-xs ${s.is_terminal ? 'bg-surface-muted text-foreground-muted' : 'bg-green-100 text-green-800'}`}>
                   {s.name}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
                 </span>
               ))}
@@ -368,10 +368,10 @@ export default function InputPage() {
           </div>
 
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
+            <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
             <div className="space-y-1">
               {parsed.transitions.map((t, i) => (
-                <div key={i} className="text-xs text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded">
+                <div key={i} className="text-xs text-foreground-muted font-mono bg-surface-muted px-2 py-1 rounded">
                   {t.from_state} --[{t.event}]--&gt; {t.to_state}
                 </div>
               ))}
@@ -380,7 +380,7 @@ export default function InputPage() {
 
           {previewMachine && previewMachine.states.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">{t('detail.diagram')}</p>
+              <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.diagram')}</p>
               <StateDiagram machine={previewMachine} />
             </div>
           )}
@@ -399,7 +399,7 @@ export default function InputPage() {
             </button>
             <button
               onClick={() => setParsed(null)}
-              className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 border border-border text-foreground-muted rounded-lg text-sm hover:bg-surface-muted transition-colors"
             >
               {t('input.redo')}
             </button>

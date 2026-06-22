@@ -15,6 +15,12 @@
   --brand-strong: #4338ca;
   --surface: #ffffff;
   --surface-muted: #f8fafc;
+  /* Foreground (text) tokens — paired with the surface tokens so dark
+   * backgrounds get light text in a single var swap (SOT-1059). */
+  --foreground: #111827;
+  --foreground-muted: #4b5563;
+  --foreground-subtle: #6b7280;
+  --border: #e5e7eb;
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
   --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.10);
   /* Diagram canvas + node/edge semantic colors (proposal 2/3). */
@@ -36,6 +42,10 @@
     --brand-strong: #a5b4fc;
     --surface: #1e293b;
     --surface-muted: #0f172a;
+    --foreground: #e8eef7;
+    --foreground-muted: #cbd5e1;
+    --foreground-subtle: #94a3b8;
+    --border: #334155;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.55);
     --sm-canvas: #111827;
@@ -48,6 +58,10 @@
   --brand-strong: #a5b4fc;
   --surface: #1e293b;
   --surface-muted: #0f172a;
+  --foreground: #e8eef7;
+  --foreground-muted: #cbd5e1;
+  --foreground-subtle: #94a3b8;
+  --border: #334155;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.55);
   --sm-canvas: #111827;
@@ -61,7 +75,7 @@ html {
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-surface-muted text-foreground;
 }
 
 .nums {
@@ -125,7 +139,7 @@ body {
     display: block;
     padding: 0.625rem 0.25rem;
   }
-  table.responsive-table tr + tr { border-top: 1px solid #e5e7eb; }
+  table.responsive-table tr + tr { border-top: 1px solid var(--border); }
   table.responsive-table td {
     display: flex;
     justify-content: space-between;
@@ -141,7 +155,7 @@ body {
     content: attr(data-label);
     flex: 0 0 auto;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--foreground-subtle);
     text-align: left;
     white-space: nowrap;
   }

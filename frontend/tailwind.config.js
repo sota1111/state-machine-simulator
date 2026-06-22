@@ -18,6 +18,10 @@ export default {
         'brand-strong': 'var(--brand-strong)',
         surface: 'var(--surface)',
         'surface-muted': 'var(--surface-muted)',
+        foreground: 'var(--foreground)',
+        'foreground-muted': 'var(--foreground-muted)',
+        'foreground-subtle': 'var(--foreground-subtle)',
+        border: 'var(--border)',
       },
       boxShadow: {
         card: 'var(--shadow-card)',

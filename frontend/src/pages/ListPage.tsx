@@ -27,12 +27,12 @@ export default function ListPage() {
   const tabClass = (active: boolean) =>
     active
       ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
-      : 'px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+      : 'px-4 py-2 rounded-lg text-sm font-medium bg-surface border border-border text-foreground-muted hover:bg-surface-muted'
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('list.title')}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{t('list.title')}</h1>
         <Link
           to="/input"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -59,23 +59,23 @@ export default function ListPage() {
       </div>
 
       {isSampleView && (
-        <p className="text-sm text-gray-500">{t('list.templateHint')}</p>
+        <p className="text-sm text-foreground-subtle">{t('list.templateHint')}</p>
       )}
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-          <span className="h-8 w-8 mb-3 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" aria-hidden />
+        <div className="flex flex-col items-center justify-center py-16 text-foreground-subtle">
+          <span className="h-8 w-8 mb-3 rounded-full border-2 border-border border-t-blue-500 animate-spin" aria-hidden />
           <p className="text-sm">{t('common.loading')}</p>
         </div>
       ) : error ? (
         <div className="text-center py-12">
           <div className="text-3xl mb-2" aria-hidden>⚠️</div>
-          <p className="font-semibold text-gray-700">{t('list.errorTitle')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('list.errorBody')}</p>
+          <p className="font-semibold text-foreground-muted">{t('list.errorTitle')}</p>
+          <p className="text-sm text-foreground-subtle mt-1">{t('list.errorBody')}</p>
         </div>
       ) : !models || models.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-500">
+        <div className="text-center py-16 bg-surface rounded-lg border border-border">
+          <p className="text-foreground-subtle">
             {isSampleView ? t('list.emptySample') : t('list.emptyMine')}
           </p>
           {!isSampleView && (
@@ -87,14 +87,14 @@ export default function ListPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {models.map(model => (
-            <div key={model.id} className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+            <div key={model.id} className="bg-surface rounded-lg border border-border p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-gray-900 truncate">{sampleLabel(model.name, lang)}</h2>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{model.description}</p>
+                  <h2 className="font-semibold text-foreground truncate">{sampleLabel(model.name, lang)}</h2>
+                  <p className="text-sm text-foreground-subtle mt-1 line-clamp-2">{model.description}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+              <div className="mt-3 flex items-center gap-3 text-xs text-foreground-subtle">
                 <span>{model.states.length} {t('unit.states')}</span>
                 <span>{model.transitions.length} {t('unit.transitions')}</span>
               </div>

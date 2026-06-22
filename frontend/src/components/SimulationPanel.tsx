@@ -45,20 +45,20 @@ export default function SimulationPanel({ machine }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-      <h3 className="font-semibold text-gray-800">{t('sim.title')}</h3>
+    <div className="bg-surface rounded-lg border border-border p-4 space-y-4">
+      <h3 className="font-semibold text-foreground">{t('sim.title')}</h3>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">{t('sim.currentState')}</span>
+        <span className="text-sm text-foreground-subtle">{t('sim.currentState')}</span>
         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
           {sampleLabel(currentState, lang)}
         </span>
       </div>
 
       <div>
-        <p className="text-sm text-gray-500 mb-2">{t('sim.availableEvents')}</p>
+        <p className="text-sm text-foreground-subtle mb-2">{t('sim.availableEvents')}</p>
         {availableEvents.length === 0 ? (
-          <p className="text-sm text-gray-400 italic">{t('sim.terminalNoEvents')}</p>
+          <p className="text-sm text-foreground-subtle italic">{t('sim.terminalNoEvents')}</p>
         ) : (
           <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
             {availableEvents.map(event => (
@@ -77,15 +77,15 @@ export default function SimulationPanel({ machine }: Props) {
 
       <button
         onClick={handleReset}
-        className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-sm hover:bg-gray-50 transition-colors"
+        className="px-3 py-1.5 border border-border text-foreground-muted rounded-md text-sm hover:bg-surface-muted transition-colors"
       >
         {t('sim.reset')}
       </button>
 
-      <div className="bg-gray-50 rounded p-3 max-h-40 overflow-y-auto">
-        <p className="text-xs text-gray-500 mb-1">{t('sim.log')}</p>
+      <div className="bg-surface-muted rounded p-3 max-h-40 overflow-y-auto">
+        <p className="text-xs text-foreground-subtle mb-1">{t('sim.log')}</p>
         {log.map((entry, i) => (
-          <p key={i} className="text-xs text-gray-700 font-mono">{entry}</p>
+          <p key={i} className="text-xs text-foreground-muted font-mono">{entry}</p>
         ))}
       </div>
     </div>
