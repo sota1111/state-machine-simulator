@@ -35,8 +35,8 @@ export default function LoginPage() {
       </div>
       <div style={{ background: '#fff', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '380px', boxShadow: '0 12px 32px rgba(16,24,40,0.12)', border: '1px solid #e6e9ee' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, marginBottom: '0.75rem', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 800 }}>SM</span>
-          <h1 style={{ fontSize: '1.35rem', marginBottom: '0.35rem' }}>State Machine Simulator</h1>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, marginBottom: '0.75rem', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 800 }}>FR</span>
+          <h1 style={{ fontSize: '1.35rem', marginBottom: '0.35rem' }}>FlowReview</h1>
           <p style={{ color: '#5b6472', fontSize: '0.9rem' }}>{t('login.subtitle')}</p>
         </div>
         <form onSubmit={handleSubmit}>
