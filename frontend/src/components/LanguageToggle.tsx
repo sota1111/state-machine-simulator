@@ -10,7 +10,7 @@ export default function LanguageToggle() {
       onClick={() => setLang(value)}
       aria-pressed={lang === value}
       className={`px-2 py-1 text-xs font-semibold transition-colors ${
-        lang === value ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
+        lang === value ? 'bg-blue-600 text-white' : 'bg-surface text-foreground-muted hover:bg-surface-muted'
       }`}
     >
       {label}
@@ -19,7 +19,7 @@ export default function LanguageToggle() {
 
   return (
     <div
-      className="inline-flex rounded-md border border-gray-300 overflow-hidden shrink-0"
+      className="inline-flex rounded-md border border-border overflow-hidden shrink-0"
       role="group"
       aria-label={t('lang.toggleAria')}
     >

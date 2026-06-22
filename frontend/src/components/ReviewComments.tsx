@@ -69,8 +69,8 @@ export default function ReviewComments({ machineId }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-      <h3 className="font-semibold text-gray-800">{t('review.title')}</h3>
+    <div className="bg-surface rounded-lg border border-border p-4 space-y-3">
+      <h3 className="font-semibold text-foreground">{t('review.title')}</h3>
 
       <div className="flex flex-col gap-2">
         <textarea
@@ -78,26 +78,26 @@ export default function ReviewComments({ machineId }: Props) {
           onChange={e => setDraft(e.target.value)}
           placeholder={t('review.placeholder')}
           rows={2}
-          className="w-full resize-y rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full resize-y rounded-md border border-border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button
           type="button"
           onClick={handleAdd}
           disabled={!draft.trim()}
-          className="self-end px-4 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="self-end px-4 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-surface-muted disabled:cursor-not-allowed transition-colors"
         >
           {t('review.add')}
         </button>
       </div>
 
       {comments.length === 0 ? (
-        <p className="text-sm text-gray-400">{t('review.empty')}</p>
+        <p className="text-sm text-foreground-subtle">{t('review.empty')}</p>
       ) : (
         <ul className="space-y-2">
           {comments.map(c => (
-            <li key={c.id} className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+            <li key={c.id} className="rounded-md border border-border bg-surface-muted px-3 py-2">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm text-gray-800 whitespace-pre-wrap break-words flex-1">{c.body}</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap break-words flex-1">{c.body}</p>
                 <button
                   type="button"
                   onClick={() => handleDelete(c.id)}
@@ -106,7 +106,7 @@ export default function ReviewComments({ machineId }: Props) {
                   {t('review.delete')}
                 </button>
               </div>
-              <p className="mt-1 text-[11px] text-gray-400">{formatDate(c.createdAt)}</p>
+              <p className="mt-1 text-[11px] text-foreground-subtle">{formatDate(c.createdAt)}</p>
             </li>
           ))}
         </ul>
