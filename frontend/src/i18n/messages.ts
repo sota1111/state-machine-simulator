@@ -86,7 +86,7 @@ export const messages = {
     'input.errInitialRequired': '開始工程を入力してください',
     'input.errInitialInList': '開始工程は工程一覧に含まれている必要があります',
 
-    'detail.back': '← 一覧に戻る',
+    'detail.back': '← back',
     'detail.exportJson': 'JSON エクスポート',
     'detail.notFound': 'フローが見つかりません',
     'detail.diagram': '業務フロー図',
@@ -257,7 +257,7 @@ export const messages = {
     'input.errInitialRequired': 'Please enter a start step',
     'input.errInitialInList': 'The start step must be one of the listed steps',
 
-    'detail.back': '← Back to list',
+    'detail.back': '← back',
     'detail.exportJson': 'Export JSON',
     'detail.notFound': 'Flow not found',
     'detail.diagram': 'Flow diagram',
