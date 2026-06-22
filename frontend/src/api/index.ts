@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { StateMachine, StateMachineInput, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse, RefineRequest, ReviewRequest, ReviewResponse, TestCaseRequest, TestCaseResponse } from '../types'
+import type { StateMachine, StateMachineInput, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse, RefineRequest, ReviewRequest, ReviewResponse, TestCaseRequest, TestCaseResponse, StateMachineVersionSummary, StateMachineVersion } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -49,11 +49,20 @@ export const simulateStep = (id: string, data: SimulateRequest): Promise<Simulat
 export const getHistory = (id: string): Promise<SimulationHistory[]> =>
   api.get(`/models/${id}/history`).then(r => r.data)
 
+export const getVersions = (id: string): Promise<StateMachineVersionSummary[]> =>
+  api.get(`/models/${id}/versions`).then(r => r.data)
+
+export const getVersion = (id: string, version: number): Promise<StateMachineVersion> =>
+  api.get(`/models/${id}/versions/${version}`).then(r => r.data)
+
 export const parseText = (text: string): Promise<ParseResponse> =>
   api.post('/parse/', { text }).then(r => r.data)
 
 export const refineWorkflow = (data: RefineRequest): Promise<ParseResponse> =>
   api.post('/parse/refine', data).then(r => r.data)
+
+export const importFlow = (text: string, sourceType: string): Promise<ParseResponse> =>
+  api.post('/parse/import', { text, source_type: sourceType }).then(r => r.data)
 
 export const reviewMachine = (data: ReviewRequest): Promise<ReviewResponse> =>
   api.post('/review/', data).then(r => r.data)

@@ -3,7 +3,7 @@ import hashlib
 from fastapi import APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
-from ..services.nlp import parse_natural_language, refine_state_machine, APIKeyNotConfiguredError, AIRateLimitError, AIServiceUnavailableError, AIParseError
+from ..services.nlp import parse_natural_language, refine_state_machine, import_flow, APIKeyNotConfiguredError, AIRateLimitError, AIServiceUnavailableError, AIParseError
 from ..services.cache import parse_cache
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,11 @@ class RefineRequest(BaseModel):
     initial_state: str
     states: list[dict]
     transitions: list[dict]
+
+class ImportRequest(BaseModel):
+    text: str
+    # auto | code | procedure — hints the extractor about the source kind.
+    source_type: str = "auto"
 
 @router.post("/", response_model=ParseResponse)
 async def parse_text(request: ParseRequest):
@@ -70,6 +75,27 @@ async def parse_text(request: ParseRequest):
     except RuntimeError as e:
         logger.error(f"Parse runtime error: {e}")
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.post("/import", response_model=ParseResponse)
+async def import_text(request: ImportRequest):
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Input text cannot be empty")
+
+    normalized_text = request.text.strip()
+    if len(normalized_text) > 20000:
+        raise HTTPException(status_code=400, detail="Input text too long (max 20000 characters)")
+
+    try:
+        result = await run_in_threadpool(import_flow, normalized_text, request.source_type)
+        return ParseResponse(**result)
+    except AIRateLimitError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    except AIServiceUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        # Heuristic could not extract any states from the input.
+        raise HTTPException(status_code=422, detail=f"Failed to import flow: {str(e)}")
 
 
 @router.post("/refine", response_model=ParseResponse)
