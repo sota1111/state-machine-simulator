@@ -86,11 +86,9 @@ export default function DetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700">
-          {t('detail.back')}
-        </button>
-        <h1 className="text-2xl font-bold text-gray-900">{sampleLabel(machine.name, lang)}</h1>
+      {/* Export actions sit at the very top of the review screen, separated from the title row
+          so the title has full width and never wraps. */}
+      <div className="flex items-center justify-end gap-2">
         <button
           onClick={handleExport}
           className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
@@ -103,6 +101,17 @@ export default function DetailPage() {
         >
           {t('detail.exportPuml')}
         </button>
+      </div>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => navigate('/')}
+          className="text-gray-500 hover:text-gray-700 whitespace-nowrap"
+        >
+          {t('detail.back')}
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900 whitespace-nowrap truncate min-w-0">
+          {sampleLabel(machine.name, lang)}
+        </h1>
       </div>
 
       {machine.description && (
