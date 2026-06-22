@@ -2,29 +2,32 @@
 
 ## Fallback Disclosure
 - Non-responsive worker: **Gemini CLI**
-- Detected failure mode: `run_gemini.sh` exited **75** (WORKER_NONRESPONSE); root cause `IneligibleTierError: UNSUPPORTED_CLIENT` (free tier no longer supported). Permanent condition.
+- Detected failure mode: `run_gemini.sh` exited **75** (WORKER_NONRESPONSE); root cause `IneligibleTierError: UNSUPPORTED_CLIENT` (Gemini Code Assist free tier no longer supported). Permanent condition — retry would not help.
 - Action: Per the Worker Non-Response Fallback Policy, **Claude Code performed the implementation directly**.
 
 ## Summary
-SOT-986: AI解析結果（`/input` の「AIで解析」）に状態遷移図が表示されない問題を修正。
-`InputPage` の AI 解析結果カードに `StateDiagram` を追加表示した。`ParseResponse`（ID 無し）を
-合成 `StateMachine`（state.id = state名）に変換して `StateDiagram` に渡すことで、保存前のプレビュー図を描画する。
+SOT-1076: 生成されたワークフローを自然言語で修正できるようにした。AIが説明文からステートマシン
+（`parsed`）を生成した後、ユーザーが自然言語の修正指示を入力すると、AIがワークフロー全体を
+再生成してプレビューを差し替える。
 
 ## Changed Files
-- `frontend/src/pages/InputPage.tsx` — `StateDiagram` import 追加、`parsed`→合成`StateMachine`変換(`previewMachine`)、AI解析結果カード内に `detail.diagram` 見出し + `<StateDiagram>` を追加。
+- `backend/app/services/nlp.py` — `refine_state_machine(current, instruction)` 追加。`_call_with_retry`/`_parse_response`・既存例外クラスを再利用。
+- `backend/app/routers/parse.py` — `RefineRequest` モデルと `POST /parse/refine` 追加（キャッシュなし）、`/parse/` と同一のエラーマッピング。
+- `frontend/src/types/index.ts` — `RefineRequest` 追加。
+- `frontend/src/api/index.ts` — `refineWorkflow(data)` 追加。
+- `frontend/src/pages/InputPage.tsx` — AI解析結果パネルに修正指示 textarea + ボタン + `refineMutation` を追加。成功時 `parsed` を差し替え。
+- `frontend/src/i18n/messages.ts` — `input.refineLabel/refinePlaceholder/refineBtn/refining`（ja+en）追加。
 
 ## Commands Run
 - (verification delegated to Codex — see docs/ai/60_worker_codex_report.md)
 
 ## Acceptance Criteria
-- [x] AI解析結果カード内に StateDiagram が表示される
-- [x] 合成 StateMachine の state.id = state名 で遷移参照が解決される
-- [x] 既存のテキスト表示・保存/やり直しは維持
-- [x] 新規i18nキーは不要（既存 `detail.diagram` を再利用、ja/en 両方存在）
+- [x] 生成済みワークフローを自然言語指示で修正できる
+- [x] 初回生成と同じスキーマを返し、`_parse_response` で整合検証
+- [x] `/parse/` と同じエラーハンドリング
 
 ## Risks
-- `previewMachine` は固定 `id: 'preview'` の使い捨て。保存フロー(`handleSaveParsed`)には未使用なので保存挙動は不変。
-- `parsed.states.length > 0` のときだけ図を描画しクラッシュを回避。
+- AI 呼び出しは本番で Vertex/GEMINI 設定が必要（既存 parse と同条件）。検証では AI をモックしてライブ呼び出しを避けること。
 
 ## Next Action
 NEEDS_DEBUG

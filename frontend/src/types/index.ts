@@ -84,3 +84,12 @@ export interface ParseResponse {
   states: Array<{ name: string; description: string; is_terminal: boolean }>
   transitions: Array<{ from_state: string; to_state: string; event: string }>
 }
+
+export interface RefineRequest {
+  instruction: string
+  name: string
+  description: string
+  initial_state: string
+  states: Array<{ name: string; description: string; is_terminal: boolean }>
+  transitions: Array<{ from_state: string; to_state: string; event: string }>
+}
