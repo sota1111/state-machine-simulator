@@ -41,12 +41,15 @@ function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${idCounter}`
 }
 
-// Simple BFS layered layout (left→right) used to seed initial node positions
-// from a machine that has no stored coordinates.
+// Simple BFS layered layout used to seed node positions from a machine that has
+// no stored coordinates. `isVertical` controls the layer direction:
+//   - false (default): layers run left→right (depth = column / x), siblings stack down (y).
+//   - true: layers run top→bottom (depth = row / y), siblings spread across (x).
 function computeLayout(
   stateNames: string[],
   transitions: Array<{ from_state: string; to_state: string }>,
   initial: string,
+  isVertical = false,
 ): Map<string, { x: number; y: number }> {
   const LAYER_GAP = 120
   const SIBLING_GAP = 48
@@ -85,13 +88,49 @@ function computeLayout(
   const pos = new Map<string, { x: number; y: number }>()
   Array.from(columns.keys()).sort((a, b) => a - b).forEach(col => {
     columns.get(col)!.forEach((name, row) => {
-      pos.set(name, {
-        x: col * (NODE_WIDTH + LAYER_GAP) + MARGIN,
-        y: row * (NODE_HEIGHT + SIBLING_GAP) + MARGIN,
-      })
+      pos.set(name, isVertical
+        ? {
+            // Layers run top→bottom; siblings spread across the x axis.
+            x: row * (NODE_WIDTH + SIBLING_GAP) + MARGIN,
+            y: col * (NODE_HEIGHT + LAYER_GAP) + MARGIN,
+          }
+        : {
+            x: col * (NODE_WIDTH + LAYER_GAP) + MARGIN,
+            y: row * (NODE_HEIGHT + SIBLING_GAP) + MARGIN,
+          })
     })
   })
   return pos
+}
+
+// Re-arrange an existing editor model's node positions using the BFS layered
+// layout in the given orientation. Only x/y change; node identity, names,
+// descriptions, terminal flags, edges and the initial state are preserved.
+// Coordinates are a working display aid (they are not part of the save contract).
+export function arrangeLayout(model: EditorModel, isVertical: boolean): EditorModel {
+  const idToName = new Map<string, string>()
+  model.nodes.forEach(n => idToName.set(n.id, n.name))
+
+  const transitions = model.edges
+    .map(e => {
+      const from_state = idToName.get(e.from)
+      const to_state = idToName.get(e.to)
+      if (!from_state || !to_state) return null
+      return { from_state, to_state }
+    })
+    .filter((t): t is { from_state: string; to_state: string } => t !== null)
+
+  const initial = (model.initialId && idToName.get(model.initialId)) || model.nodes[0]?.name || ''
+
+  const layout = computeLayout(model.nodes.map(n => n.name), transitions, initial, isVertical)
+
+  return {
+    ...model,
+    nodes: model.nodes.map(n => {
+      const p = layout.get(n.name)
+      return p ? { ...n, x: p.x, y: p.y } : n
+    }),
+  }
 }
 
 export function fromStateMachine(machine: StateMachine): EditorModel {

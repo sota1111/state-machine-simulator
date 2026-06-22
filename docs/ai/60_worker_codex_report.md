@@ -1,54 +1,48 @@
-# Worker Report
+# Worker Report (SOT-1077)
 
 ## Summary
-Verified SOT-1076 implementation and added a minimal backend endpoint test for `POST /api/parse/refine`.
+Verified the Claude Code implementation for SOT-1077. No fixes were required.
 
-The new test mocks `app.routers.parse.refine_state_machine`, so no live AI call is made. It covers:
-- success returns a refined `ParseResponse`
-- empty instruction returns 400
-- empty states returns 400
-
-Backend and frontend verification passed after running backend tests through the existing `backend/.venv` with declared dependencies installed.
+The edit-mode diagram editor now has a vertical/horizontal display toggle, defaults to vertical layout, and re-arranges the editable model when toggled.
 
 ## Changed Files
-- `backend/tests/test_parse_refine.py`
-- `docs/ai/60_worker_codex_report.md`
+- `frontend/src/components/stateEditorModel.ts` — verified `computeLayout(..., isVertical = false)` preserves the old default horizontal seeding behavior; verified exported pure helper `arrangeLayout(model, isVertical)` only repositions node `x`/`y`.
+- `frontend/src/components/StateDiagramEditor.tsx` — verified local `isVertical` state defaults true, initial model is seeded with `arrangeLayout(fromStateMachine(machine), true)`, and toolbar toggle re-arranges layout.
+- `frontend/src/components/stateEditorModel.test.ts` — verified three `arrangeLayout` tests cover vertical layout, horizontal layout, and preservation of model identity/edges/initial state.
+- `docs/ai/60_worker_codex_report.md` — updated with this verification report.
 
 ## Commands Run
-- `cd backend && python -m pytest -q`
-  - Result: failed during collection in system Python before tests ran.
-  - Reason: `ModuleNotFoundError: No module named 'google.genai'`.
-- `cd backend && python -m pip install -r requirements.txt -r requirements-test.txt`
-  - Result: failed because system Python is externally managed.
-- `cd backend && .venv/bin/python -m pip install -r requirements.txt -r requirements-test.txt`
-  - Result: passed; installed/aligned declared backend dependencies in existing virtualenv.
-- `cd backend && .venv/bin/python -m pytest -q`
-  - Result: passed.
-  - Output: `67 passed, 31 warnings in 0.59s`.
 - `cd frontend && npm run lint`
-  - Result: passed.
+  - Exit: 0
+  - Result: ESLint completed with `--max-warnings 0`.
 - `cd frontend && npm run typecheck`
-  - Result: passed.
+  - Exit: 0
+  - Result: `tsc --noEmit` completed successfully.
 - `cd frontend && npm run test`
-  - Result: passed.
-  - Output: `Test Files 4 passed (4)`, `Tests 26 passed (26)`.
+  - Exit: 0
+  - Result: Vitest passed: 4 test files, 29 tests.
 - `cd frontend && npm run build`
-  - Result: passed.
-  - Output: build completed; Vite reported the existing chunk-size warning for `dist/assets/index-C5DzCgzx.js`.
+  - Exit: 0
+  - Result: `tsc && vite build` completed successfully.
+  - Note: Vite emitted the existing chunk-size warning for `dist/assets/index-*.js` over 500 kB; build still exited 0.
+
+## Contract Checks
+- Horizontal seeding behavior is unchanged by default: `computeLayout` now accepts `isVertical = false`, and the false branch uses the original coordinate formula (`x` by BFS depth, `y` by sibling row).
+- `toStateMachineInput` save contract is untouched by the implementation diff. It still serializes only `name`, `description`, `initial_state`, `states`, and `transitions`; editor coordinates remain excluded.
+- No frontend fixes were applied because all required verification commands passed.
+- No backend, `DetailPage`, or `StateDiagram.tsx` changes were made by this verification pass.
 
 ## Acceptance Criteria
-- [x] Added minimal backend test for `POST /parse/refine` behavior via `/api/parse/refine`.
-- [x] Mocked `app.routers.parse.refine_state_machine`; no live AI call.
-- [x] Covered success, empty instruction 400, and empty states 400.
-- [x] Backend tests pass in the project virtualenv.
-- [x] Frontend lint passes.
-- [x] Frontend typecheck passes.
-- [x] Frontend tests pass.
-- [x] Frontend build passes.
+- [x] `npm run lint` exits 0.
+- [x] `npm run typecheck` exits 0.
+- [x] `npm run test` exits 0.
+- [x] `npm run build` exits 0.
+- [x] Existing horizontal `computeLayout` default behavior confirmed unchanged.
+- [x] `toStateMachineInput` save contract confirmed untouched.
 
 ## Risks
-- The exact requested backend command using system Python currently fails because the system environment lacks `google.genai`. The existing `backend/.venv` succeeds after installing the declared requirements.
-- Frontend build emits a chunk-size warning, but exits 0.
+- The toggle intentionally re-arranges node positions, so any manual drag positions in the current edit session are replaced when toggling orientation.
+- Coordinates are display-only working state and are not saved by `toStateMachineInput`.
 
 ## Next Action
 READY_FOR_REVIEW

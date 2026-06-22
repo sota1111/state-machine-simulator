@@ -14,6 +14,7 @@ import {
   addEdge,
   updateEdgeEvent,
   removeEdge,
+  arrangeLayout,
   toStateMachineInput,
   type EditorModel,
   type EditorNode,
@@ -43,7 +44,9 @@ function nodeCenter(n: EditorNode) {
 export default function StateDiagramEditor({ machine, onSaved }: Props) {
   const queryClient = useQueryClient()
   const svgRef = useRef<SVGSVGElement>(null)
-  const [model, setModel] = useState<EditorModel>(() => fromStateMachine(machine))
+  // Default to a vertical (top→bottom) layout, matching the read-only diagram view.
+  const [isVertical, setIsVertical] = useState(true)
+  const [model, setModel] = useState<EditorModel>(() => arrangeLayout(fromStateMachine(machine), true))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -162,6 +165,17 @@ export default function StateDiagramEditor({ machine, onSaved }: Props) {
           className="px-3 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50"
         >
           {saveMutation.isPending ? '保存中...' : '保存'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const next = !isVertical
+            setIsVertical(next)
+            setModel(m => arrangeLayout(m, next))
+          }}
+          className="px-3 py-1.5 border border-border rounded text-sm font-medium hover:bg-surface-muted"
+        >
+          {isVertical ? '横表示にする →' : '縦表示にする ↓'}
         </button>
         <span className="text-xs text-foreground-subtle">
           ノードをドラッグで移動 / 右側の●から別ノードへドラッグで遷移作成

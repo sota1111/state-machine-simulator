@@ -10,6 +10,7 @@ import {
   addEdge,
   updateEdgeEvent,
   removeEdge,
+  arrangeLayout,
   toStateMachineInput,
 } from './stateEditorModel'
 
@@ -118,6 +119,33 @@ describe('edge operations', () => {
     expect(m1.edges[0].event).toBe('renamed')
     const m2 = removeEdge(m1, edgeId)
     expect(m2.edges).toHaveLength(0)
+  })
+})
+
+describe('arrangeLayout', () => {
+  it('lays out successive layers downward (y) when vertical', () => {
+    const m = arrangeLayout(fromStateMachine(sampleMachine()), true)
+    const out = m.nodes.find(n => n.name === 'ログアウト')!
+    const inn = m.nodes.find(n => n.name === 'ログイン中')!
+    // ログアウト → ログイン中, so the target sits in the next layer (further down).
+    expect(inn.y).toBeGreaterThan(out.y)
+    expect(inn.x).toBe(out.x)
+  })
+
+  it('lays out successive layers rightward (x) when horizontal', () => {
+    const m = arrangeLayout(fromStateMachine(sampleMachine()), false)
+    const out = m.nodes.find(n => n.name === 'ログアウト')!
+    const inn = m.nodes.find(n => n.name === 'ログイン中')!
+    expect(inn.x).toBeGreaterThan(out.x)
+    expect(inn.y).toBe(out.y)
+  })
+
+  it('preserves node identity, edges and the initial state', () => {
+    const m0 = fromStateMachine(sampleMachine())
+    const m1 = arrangeLayout(m0, true)
+    expect(m1.nodes.map(n => n.id).sort()).toEqual(m0.nodes.map(n => n.id).sort())
+    expect(m1.edges).toEqual(m0.edges)
+    expect(m1.initialId).toBe(m0.initialId)
   })
 })
 
