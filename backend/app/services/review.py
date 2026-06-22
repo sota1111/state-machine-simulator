@@ -113,16 +113,14 @@ def deterministic_review(initial_state: str, states, transitions) -> List[Review
 
     # --- terminal states & non_terminating analysis ---
     has_outgoing = {t.from_state for t in valid_transitions}
-    terminal_states = {s.name for s in states if s.is_terminal or s.name not in has_outgoing}
+    terminal_states = {s.name for s in states if s.is_terminal}
 
-    if not any(s.is_terminal for s in states) and not any(
-        s.name not in has_outgoing for s in states
-    ):
+    if not terminal_states:
         findings.append(ReviewFinding(
             type="non_terminating",
             severity="warning",
             target="",
-            reason="終了状態（is_terminal もしくは出力遷移を持たない状態）が一つもありません。",
+            reason="終了状態（is_terminal）が一つもありません。",
             suggestion="正常に処理が完了する終了状態を1つ以上定義してください。",
         ))
 

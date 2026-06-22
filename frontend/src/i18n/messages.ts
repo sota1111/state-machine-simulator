@@ -155,11 +155,11 @@ export const messages = {
     'sim.resetLog': 'リセット → 開始工程',
     'sim.initialLog': '開始工程',
 
-    'review.title': 'レビューコメント',
-    'review.placeholder': '気づいた点や指摘を記入...',
-    'review.add': '追加',
-    'review.empty': 'まだコメントはありません',
-    'review.delete': '削除',
+    'reviewComments.title': 'レビューコメント',
+    'reviewComments.placeholder': '気づいた点や指摘を記入...',
+    'reviewComments.add': '追加',
+    'reviewComments.empty': 'まだコメントはありません',
+    'reviewComments.delete': '削除',
 
     'analysis.title': '点検結果',
     'analysis.ok': '指摘なし',
@@ -360,11 +360,11 @@ export const messages = {
     'sim.resetLog': 'Reset → start step',
     'sim.initialLog': 'Start step',
 
-    'review.title': 'Review comments',
-    'review.placeholder': 'Add a note or finding...',
-    'review.add': 'Add',
-    'review.empty': 'No comments yet',
-    'review.delete': 'Delete',
+    'reviewComments.title': 'Review comments',
+    'reviewComments.placeholder': 'Add a note or finding...',
+    'reviewComments.add': 'Add',
+    'reviewComments.empty': 'No comments yet',
+    'reviewComments.delete': 'Delete',
 
     'analysis.title': 'Inspection result',
     'analysis.ok': 'No issues',

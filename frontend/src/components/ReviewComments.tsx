@@ -70,13 +70,13 @@ export default function ReviewComments({ machineId }: Props) {
 
   return (
     <div className="bg-surface rounded-lg border border-border p-4 space-y-3">
-      <h3 className="font-semibold text-foreground">{t('review.title')}</h3>
+      <h3 className="font-semibold text-foreground">{t('reviewComments.title')}</h3>
 
       <div className="flex flex-col gap-2">
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder={t('review.placeholder')}
+          placeholder={t('reviewComments.placeholder')}
           rows={2}
           className="w-full resize-y rounded-md border border-border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
@@ -86,12 +86,12 @@ export default function ReviewComments({ machineId }: Props) {
           disabled={!draft.trim()}
           className="self-end px-4 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-surface-muted disabled:cursor-not-allowed transition-colors"
         >
-          {t('review.add')}
+          {t('reviewComments.add')}
         </button>
       </div>
 
       {comments.length === 0 ? (
-        <p className="text-sm text-foreground-subtle">{t('review.empty')}</p>
+        <p className="text-sm text-foreground-subtle">{t('reviewComments.empty')}</p>
       ) : (
         <ul className="space-y-2">
           {comments.map(c => (
@@ -103,7 +103,7 @@ export default function ReviewComments({ machineId }: Props) {
                   onClick={() => handleDelete(c.id)}
                   className="shrink-0 text-xs text-red-500 hover:text-red-700 hover:underline"
                 >
-                  {t('review.delete')}
+                  {t('reviewComments.delete')}
                 </button>
               </div>
               <p className="mt-1 text-[11px] text-foreground-subtle">{formatDate(c.createdAt)}</p>
