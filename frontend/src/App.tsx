@@ -39,8 +39,8 @@ function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap shrink-0">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-extrabold">SM</span>
-              State Machine Simulator
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-extrabold">FR</span>
+              FlowReview
             </Link>
             <div className="flex items-center gap-2">
               {isAuthenticated && (
@@ -75,7 +75,7 @@ function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
-        State Machine Simulator — {t('app.footerTagline')}
+        FlowReview — {t('app.footerTagline')}
       </footer>
     </div>
   )

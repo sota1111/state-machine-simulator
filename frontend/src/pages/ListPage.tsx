@@ -58,6 +58,10 @@ export default function ListPage() {
         </button>
       </div>
 
+      {isSampleView && (
+        <p className="text-sm text-gray-500">{t('list.templateHint')}</p>
+      )}
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-gray-500">
           <span className="h-8 w-8 mb-3 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" aria-hidden />

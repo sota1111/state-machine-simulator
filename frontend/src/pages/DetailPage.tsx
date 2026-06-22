@@ -6,10 +6,12 @@ import StateDiagram from '../components/StateDiagram'
 import StateDiagramEditor from '../components/StateDiagramEditor'
 import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
+import ReviewComments from '../components/ReviewComments'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useI18n } from '../i18n/useI18n'
 import { sampleLabel } from '../i18n/sampleLabels'
+import { buildProcedureSteps, toPlantUml } from '../utils/flow'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -55,11 +57,20 @@ export default function DetailPage() {
       states: machine.states.map(s => ({ name: s.name, description: s.description, is_terminal: s.is_terminal })),
       transitions: machine.transitions.map(t => ({ from_state: t.from_state, to_state: t.to_state, event: t.event })),
     }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    downloadFile(JSON.stringify(data, null, 2), 'application/json', `${machine.name.replace(/\s+/g, '_')}.json`)
+  }
+
+  const handleExportPuml = () => {
+    if (!machine) return
+    downloadFile(toPlantUml(machine), 'text/plain', `${machine.name.replace(/\s+/g, '_')}.puml`)
+  }
+
+  const downloadFile = (content: string, mime: string, filename: string) => {
+    const blob = new Blob([content], { type: mime })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${machine.name.replace(/\s+/g, '_')}.json`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -70,6 +81,7 @@ export default function DetailPage() {
   // Move the event buttons beside the diagram only on PC + vertical direction, and not while editing
   // (the editor needs full width).
   const sideBySide = isPc && isVertical && !isEditing
+  const procedureSteps = buildProcedureSteps(machine)
 
   return (
     <div className="space-y-6">
@@ -83,6 +95,12 @@ export default function DetailPage() {
           className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
         >
           {t('detail.exportJson')}
+        </button>
+        <button
+          onClick={handleExportPuml}
+          className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+        >
+          {t('detail.exportPuml')}
         </button>
       </div>
 
@@ -122,6 +140,7 @@ export default function DetailPage() {
             machine={machine}
           />
           {analysis && <AnalysisPanel analysis={analysis} />}
+          <ReviewComments machineId={machine.id} />
         </div>
       </div>
 
@@ -150,6 +169,28 @@ export default function DetailPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="font-semibold text-gray-700 mb-3">{t('detail.procedure')}</h3>
+        {procedureSteps.length === 0 ? (
+          <p className="text-sm text-gray-400">{t('detail.procedureEmpty')}</p>
+        ) : (
+          <ol className="space-y-2">
+            {procedureSteps.map((step, i) => (
+              <li key={`${step.from_state}-${step.event}-${step.to_state}-${i}`} className="flex items-start gap-3 text-sm">
+                <span className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                  {i + 1}
+                </span>
+                <span className="text-gray-800">
+                  <span className="font-medium">{sampleLabel(step.from_state, lang)}</span>
+                  <span className="mx-1.5 text-gray-400">—[{sampleLabel(step.event, lang)}]→</span>
+                  <span className="font-medium">{sampleLabel(step.to_state, lang)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
     </div>
   )
