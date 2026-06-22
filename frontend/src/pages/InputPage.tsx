@@ -8,6 +8,7 @@ import type { MessageKey } from '../i18n/messages'
 import StateDiagram from '../components/StateDiagram'
 import CoveragePanel from '../components/CoveragePanel'
 import ReviewPanel from '../components/ReviewPanel'
+import TestCasesPanel from '../components/TestCasesPanel'
 
 type Mode = 'ai' | 'manual'
 
@@ -466,6 +467,10 @@ export default function InputPage() {
 
               {previewMachine && previewMachine.states.length > 0 && (
                 <ReviewPanel machine={previewMachine} specText={text} />
+              )}
+
+              {previewMachine && previewMachine.states.length > 0 && (
+                <TestCasesPanel machine={previewMachine} />
               )}
             </div>
           )}

@@ -127,3 +127,29 @@ export interface ReviewResponse {
   findings: ReviewFinding[]
   ai_used: boolean
 }
+
+// Test-case generation (SOT-1097)
+export type TestCaseCategory = 'normal' | 'abnormal' | 'cancel' | 'timeout'
+
+export interface TestCaseStep {
+  from_state: string
+  event: string
+  to_state: string
+}
+
+export interface TestCase {
+  category: TestCaseCategory
+  title: string
+  steps: TestCaseStep[]
+  expected: string
+}
+
+export interface TestCaseRequest {
+  initial_state: string
+  states: Array<{ name: string; description: string; is_terminal: boolean }>
+  transitions: Array<{ from_state: string; to_state: string; event: string }>
+}
+
+export interface TestCaseResponse {
+  cases: TestCase[]
+}

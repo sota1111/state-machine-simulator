@@ -128,3 +128,24 @@ class ReviewResponse(BaseModel):
     findings: List[ReviewFinding]
     # True when AI augmentation contributed findings (false in deterministic-only fallback).
     ai_used: bool = False
+
+# Test-case generation schemas (SOT-1097)
+class TestCaseRequest(BaseModel):
+    initial_state: str
+    states: List[StateCreate]
+    transitions: List[TransitionCreate]
+
+class TestCaseStep(BaseModel):
+    from_state: str
+    event: str
+    to_state: str
+
+class TestCase(BaseModel):
+    # category: normal | abnormal | cancel | timeout
+    category: str
+    title: str
+    steps: List[TestCaseStep]
+    expected: str
+
+class TestCaseResponse(BaseModel):
+    cases: List[TestCase]
