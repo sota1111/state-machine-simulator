@@ -1,33 +1,34 @@
-# Worker Report
+# Worker Report (SOT-1077)
 
-## Fallback Disclosure
-- Non-responsive worker: **Gemini CLI**
-- Detected failure mode: `run_gemini.sh` exited **75** (WORKER_NONRESPONSE); root cause `IneligibleTierError: UNSUPPORTED_CLIENT` (Gemini Code Assist free tier no longer supported). Permanent condition — retry would not help.
-- Action: Per the Worker Non-Response Fallback Policy, **Claude Code performed the implementation directly**.
+## Fallback Disclosure (audit)
+- Non-responsive worker: **Gemini** (`scripts/ai/run_gemini.sh`)
+- Detected failure mode: CLI crashed with `IneligibleTierError` (UNSUPPORTED_CLIENT, free-tier no longer
+  supported for Gemini Code Assist) → run script exited `75`.
+- Action: Per Worker Non-Response Fallback Policy, **Claude Code performed this implementation directly.**
 
 ## Summary
-SOT-1076: 生成されたワークフローを自然言語で修正できるようにした。AIが説明文からステートマシン
-（`parsed`）を生成した後、ユーザーが自然言語の修正指示を入力すると、AIがワークフロー全体を
-再生成してプレビューを差し替える。
+修正モード（図エディタ `StateDiagramEditor.tsx`）に縦/横の表示切替を追加。デフォルトを縦表示にし、
+読み取り専用ビューと揃えた。`stateEditorModel.ts` の BFS レイアウトを向き対応にし、既存ノードを
+再配置する純粋関数 `arrangeLayout(model, isVertical)` を追加。
 
 ## Changed Files
-- `backend/app/services/nlp.py` — `refine_state_machine(current, instruction)` 追加。`_call_with_retry`/`_parse_response`・既存例外クラスを再利用。
-- `backend/app/routers/parse.py` — `RefineRequest` モデルと `POST /parse/refine` 追加（キャッシュなし）、`/parse/` と同一のエラーマッピング。
-- `frontend/src/types/index.ts` — `RefineRequest` 追加。
-- `frontend/src/api/index.ts` — `refineWorkflow(data)` 追加。
-- `frontend/src/pages/InputPage.tsx` — AI解析結果パネルに修正指示 textarea + ボタン + `refineMutation` を追加。成功時 `parsed` を差し替え。
-- `frontend/src/i18n/messages.ts` — `input.refineLabel/refinePlaceholder/refineBtn/refining`（ja+en）追加。
+- `frontend/src/components/stateEditorModel.ts` — `computeLayout` に `isVertical`（デフォルト false で
+  既存横方向を維持）を追加。縦方向では層を下方向(y)・兄弟を横方向(x)に配置。新規 export `arrangeLayout`。
+- `frontend/src/components/StateDiagramEditor.tsx` — `isVertical` state（デフォルト true）、初期 model を
+  縦配置、ツールバーに「縦表示にする ↓ / 横表示にする →」切替ボタンを追加（トグルで `arrangeLayout` 再配置）。
+- `frontend/src/components/stateEditorModel.test.ts` — `arrangeLayout` のテスト3件追加（縦/横の主軸・identity 保持）。
 
 ## Commands Run
-- (verification delegated to Codex — see docs/ai/60_worker_codex_report.md)
+（Codex 検証で実行）
 
 ## Acceptance Criteria
-- [x] 生成済みワークフローを自然言語指示で修正できる
-- [x] 初回生成と同じスキーマを返し、`_parse_response` で整合検証
-- [x] `/parse/` と同じエラーハンドリング
+- [x] 修正モードで縦表示が使える（デフォルト縦 + 切替ボタン）
+- [x] 既存の横方向初期配置の挙動は computeLayout デフォルト引数で保持
+- [x] 保存契約（toStateMachineInput）不変
 
 ## Risks
-- AI 呼び出しは本番で Vertex/GEMINI 設定が必要（既存 parse と同条件）。検証では AI をモックしてライブ呼び出しを避けること。
+- 座標は保存対象外のため、向き切替・初期表示の再配置は編集中の表示補助。手動ドラッグ位置は
+  切替時に再配置で上書きされる（仕様どおり、ユーザー操作起点）。
 
 ## Next Action
 NEEDS_DEBUG
