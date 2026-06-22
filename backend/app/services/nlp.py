@@ -196,3 +196,88 @@ Every transition's from_state and to_state must match a state name. Use snake_ca
                 f"AI parse failed (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s..."
             )
             time.sleep(delay)
+
+
+def refine_state_machine(current: dict, instruction: str) -> dict:
+    """
+    Apply a natural-language edit instruction to an existing state machine and
+    return the full revised state machine JSON (same schema as parse_natural_language).
+
+    ``current`` is a dict with name/description/initial_state/states/transitions.
+    ``instruction`` is the user's natural-language modification request.
+
+    Raises APIKeyNotConfiguredError when AI is unconfigured, the same transport
+    errors as parsing (AIRateLimitError / AIServiceUnavailableError), and
+    AIParseError when the AI response cannot be parsed after retries.
+    """
+    if not gemini_available():
+        raise APIKeyNotConfiguredError(
+            "AI解析機能が未設定です。本番では Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true)、"
+            "ローカルでは GEMINI_API_KEY を設定してください。手動モードでステートマシンを作成することもできます。"
+        )
+
+    client = get_genai_client()
+    model_name = get_model_name()
+
+    system_prompt = """You are an expert at editing state machine specifications.
+You are given an existing state machine as JSON and a natural-language instruction describing how to modify it.
+Apply the instruction and return the COMPLETE revised state machine (not a diff). Follow these rules:
+- Return the whole machine, keeping any parts the instruction does not mention.
+- State names should be descriptive; event names should be snake_case verbs.
+- Identify terminal states (states with no outgoing transitions) and the initial/starting state.
+
+Return ONLY a JSON object (no markdown, no prose) with exactly this shape:
+{
+  "name": string,                 // concise name for the state machine
+  "description": string,          // brief description of what it models
+  "initial_state": string,        // name of the starting state
+  "states": [
+    {"name": string, "description": string, "is_terminal": boolean}
+  ],
+  "transitions": [
+    {"from_state": string, "to_state": string, "event": string}
+  ]
+}
+Every transition's from_state and to_state must match a state name. Use snake_case for events."""
+
+    config = gtypes.GenerateContentConfig(
+        system_instruction=system_prompt,
+        response_mime_type="application/json",
+    )
+
+    current_json = json.dumps(current, ensure_ascii=False)
+    prompt = (
+        "Here is the current state machine as JSON:\n\n"
+        f"{current_json}\n\n"
+        "Apply this modification instruction and return the full revised state machine:\n\n"
+        f"{instruction}"
+    )
+
+    def _generate():
+        return client.models.generate_content(
+            model=model_name, contents=prompt, config=config
+        )
+
+    # Same retry structure as parse_natural_language: transport errors are retried inside
+    # _call_with_retry; unparseable / structurally invalid responses are retried here.
+    for attempt in range(PARSE_MAX_RETRIES + 1):
+        try:
+            response = _call_with_retry(_generate)
+
+            result = _parse_response(response)
+            logger.info("Successfully refined state machine after potential retries")
+            return result
+
+        except (AIRateLimitError, AIServiceUnavailableError):
+            raise
+        except ValueError as e:
+            if attempt == PARSE_MAX_RETRIES:
+                logger.error(f"AI refine failed after {attempt} retries: {e}")
+                raise AIParseError(
+                    "AI解析結果を読み取れませんでした。お手数ですが修正指示を変えて再試行してください。"
+                )
+            delay = PARSE_RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, PARSE_RETRY_BASE_DELAY)
+            logger.warning(
+                f"AI refine failed (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s..."
+            )
+            time.sleep(delay)

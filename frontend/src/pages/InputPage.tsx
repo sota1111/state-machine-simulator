@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { parseText, createModel } from '../api'
+import { parseText, refineWorkflow, createModel } from '../api'
 import type { ParseResponse, StateMachine } from '../types'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
@@ -34,6 +34,7 @@ export default function InputPage() {
   const [mode, setMode] = useState<Mode>('ai')
   const [text, setText] = useState('')
   const [parsed, setParsed] = useState<ParseResponse | null>(null)
+  const [refineInstruction, setRefineInstruction] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   // Manual mode state
@@ -50,6 +51,28 @@ export default function InputPage() {
     mutationFn: parseText,
     onSuccess: (data) => {
       setParsed(data)
+      setError(null)
+    },
+    onError: (err: { response?: { data?: { detail?: string } }; message: string }) => {
+      setError(err.response?.data?.detail ?? err.message)
+    }
+  })
+
+  const refineMutation = useMutation({
+    mutationFn: (instruction: string) => {
+      if (!parsed) return Promise.reject(new Error('No workflow to refine'))
+      return refineWorkflow({
+        instruction,
+        name: parsed.name,
+        description: parsed.description ?? '',
+        initial_state: parsed.initial_state,
+        states: parsed.states.map(s => ({ name: s.name, description: s.description ?? '', is_terminal: s.is_terminal ?? false })),
+        transitions: parsed.transitions.map(t => ({ from_state: t.from_state, to_state: t.to_state, event: t.event })),
+      })
+    },
+    onSuccess: (data) => {
+      setParsed(data)
+      setRefineInstruction('')
       setError(null)
     },
     onError: (err: { response?: { data?: { detail?: string } }; message: string }) => {
@@ -388,6 +411,27 @@ export default function InputPage() {
           {previewMachine && previewMachine.states.length > 0 && (
             <CoveragePanel machine={previewMachine} />
           )}
+
+          {/* 自然言語による修正（SOT-1076）。生成済みワークフローを再生成して差し替える。 */}
+          <div className="border-t border-border pt-4 space-y-2">
+            <label className="block text-sm font-medium text-foreground-muted">{t('input.refineLabel')}</label>
+            <textarea
+              value={refineInstruction}
+              onChange={(e) => setRefineInstruction(e.target.value)}
+              placeholder={t('input.refinePlaceholder')}
+              className="w-full h-24 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+            {refineMutation.isError && error && (
+              <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">{error}</div>
+            )}
+            <button
+              onClick={() => refineMutation.mutate(refineInstruction)}
+              disabled={!refineInstruction.trim() || refineMutation.isPending}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {refineMutation.isPending ? t('input.refining') : t('input.refineBtn')}
+            </button>
+          </div>
 
           <div className="flex gap-3">
             <button
