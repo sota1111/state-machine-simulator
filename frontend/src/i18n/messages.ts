@@ -167,6 +167,14 @@ export const messages = {
     'analysis.noTerminal': '終了工程が未定義',
     'analysis.noTerminalHint': 'フローに終了工程が1つもありません。完了状態を定義してください。',
     'analysis.terminal': '終了工程',
+
+    'coverage.title': '網羅性チェック',
+    'coverage.ok': '問題なし',
+    'coverage.okHint': '未到達工程・デッドロック・未定義/重複アクションは検出されませんでした。',
+    'coverage.unreachable': '未到達工程（開始から到達できない）',
+    'coverage.deadlock': 'デッドロック工程（出ていくアクションなし）',
+    'coverage.undefined': '未定義アクション（不明な工程参照／アクション名が空）',
+    'coverage.duplicate': '重複アクション（同一工程・同一アクションが複数）',
   },
   en: {
     'app.footerTagline': 'Inspect business flows for gaps with AI',
@@ -330,6 +338,14 @@ export const messages = {
     'analysis.noTerminal': 'No end step defined',
     'analysis.noTerminalHint': 'This flow has no end step. Define a completion step.',
     'analysis.terminal': 'End steps',
+
+    'coverage.title': 'Coverage check',
+    'coverage.ok': 'All good',
+    'coverage.okHint': 'No unreachable steps, deadlocks, or undefined/duplicate actions detected.',
+    'coverage.unreachable': 'Unreachable steps (not reachable from start)',
+    'coverage.deadlock': 'Deadlock steps (no outgoing action)',
+    'coverage.undefined': 'Undefined actions (unknown step reference / blank action name)',
+    'coverage.duplicate': 'Duplicate actions (same step + same action)',
   },
 } as const
 

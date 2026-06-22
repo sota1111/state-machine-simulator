@@ -6,6 +6,7 @@ import StateDiagram from '../components/StateDiagram'
 import StateDiagramEditor from '../components/StateDiagramEditor'
 import SimulationPanel from '../components/SimulationPanel'
 import AnalysisPanel from '../components/AnalysisPanel'
+import CoveragePanel from '../components/CoveragePanel'
 import ReviewComments from '../components/ReviewComments'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
@@ -140,6 +141,7 @@ export default function DetailPage() {
             machine={machine}
           />
           {analysis && <AnalysisPanel analysis={analysis} />}
+          <CoveragePanel machine={machine} />
           <ReviewComments machineId={machine.id} />
         </div>
       </div>
