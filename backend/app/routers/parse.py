@@ -19,6 +19,9 @@ class ParseResponse(BaseModel):
     initial_state: str
     states: list[dict]
     transitions: list[dict]
+    # Unique event names derived from the transitions (SOT-1095). Defaults to empty so
+    # older cache entries without `events` still serialize safely.
+    events: list[str] = []
 
 class RefineRequest(BaseModel):
     instruction: str

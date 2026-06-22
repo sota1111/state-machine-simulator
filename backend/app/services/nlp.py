@@ -114,6 +114,18 @@ def _parse_response(response) -> dict:
             logger.warning(f"Skipping invalid transition: {t}")
     result["transitions"] = valid_transitions
 
+    # Derive an explicit, de-duplicated event list from the (validated) transitions,
+    # preserving first-seen order. Events otherwise only exist as the `event` field on
+    # each transition; this surfaces them as a standalone generated artifact (SOT-1095).
+    seen_events: set = set()
+    events: list = []
+    for t in result["transitions"]:
+        ev = (t.get("event") or "").strip()
+        if ev and ev not in seen_events:
+            seen_events.add(ev)
+            events.append(ev)
+    result["events"] = events
+
     return result
 
 

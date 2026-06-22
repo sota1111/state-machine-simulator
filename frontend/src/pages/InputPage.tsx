@@ -7,6 +7,8 @@ import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
 import StateDiagram from '../components/StateDiagram'
 import CoveragePanel from '../components/CoveragePanel'
+import ReviewPanel from '../components/ReviewPanel'
+import TestCasesPanel from '../components/TestCasesPanel'
 
 type Mode = 'ai' | 'manual'
 
@@ -437,6 +439,17 @@ export default function InputPage() {
                 </div>
               </div>
 
+              {parsed.events.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.eventsList')} ({parsed.events.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {parsed.events.map(ev => (
+                      <span key={ev} className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800 font-mono">{ev}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
                 <div className="space-y-1">
@@ -450,6 +463,14 @@ export default function InputPage() {
 
               {previewMachine && previewMachine.states.length > 0 && (
                 <CoveragePanel machine={previewMachine} />
+              )}
+
+              {previewMachine && previewMachine.states.length > 0 && (
+                <ReviewPanel machine={previewMachine} specText={text} />
+              )}
+
+              {previewMachine && previewMachine.states.length > 0 && (
+                <TestCasesPanel machine={previewMachine} />
               )}
             </div>
           )}
