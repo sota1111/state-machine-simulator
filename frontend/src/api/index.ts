@@ -61,6 +61,9 @@ export const parseText = (text: string): Promise<ParseResponse> =>
 export const refineWorkflow = (data: RefineRequest): Promise<ParseResponse> =>
   api.post('/parse/refine', data).then(r => r.data)
 
+export const importFlow = (text: string, sourceType: string): Promise<ParseResponse> =>
+  api.post('/parse/import', { text, source_type: sourceType }).then(r => r.data)
+
 export const reviewMachine = (data: ReviewRequest): Promise<ReviewResponse> =>
   api.post('/review/', data).then(r => r.data)
 

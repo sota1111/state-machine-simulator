@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import random
+import re
 import time
 
 from google.genai import errors as gerrors
@@ -293,3 +294,153 @@ Every transition's from_state and to_state must match a state name. Use snake_ca
                 f"AI refine failed (attempt {attempt+1}/{PARSE_MAX_RETRIES+1}): {e}. Retrying in {delay:.2f}s..."
             )
             time.sleep(delay)
+
+
+# --- Flow import from code / procedure documents (SOT-1104, 2-E) -----------------
+
+def _extract_transition_line(line: str):
+    """Try to read a single (from_state, to_state, event) edge from one text line.
+
+    Recognizes labeled arrows (``A --[event]--> B`` / ``A -- event --> B``) and plain
+    arrows (``A -> B`` / ``A => B`` / ``A → B`` with an optional ``: event`` suffix).
+    Returns None when the line is not an edge.
+    """
+    line = line.strip()
+    if not line:
+        return None
+
+    # Labeled arrow: A --[event]--> B  or  A -- event --> B
+    m = re.match(r'^(.+?)\s*--\s*\[?\s*(.+?)\s*\]?\s*--+>\s*(.+?)$', line)
+    if m:
+        frm, ev, to = m.group(1).strip(), m.group(2).strip(), m.group(3).strip()
+        return frm, to, (ev or "next")
+
+    # Plain arrow: A -> B [: event] | A => B | A → B
+    m = re.match(r'^(.+?)\s*(?:->|=>|→)\s*(.+?)$', line)
+    if m:
+        frm = m.group(1).strip()
+        rest = m.group(2).strip()
+        ev = "next"
+        to = rest
+        if ":" in rest:
+            to_part, ev_part = rest.split(":", 1)
+            to, ev = to_part.strip(), (ev_part.strip() or "next")
+        return frm, to, ev
+
+    return None
+
+
+def _finalize_extracted(names, transitions, source_label: str) -> dict:
+    if not names:
+        raise ValueError("No states could be extracted from the input")
+    outgoing = {tr["from_state"] for tr in transitions}
+    states = [{"name": n, "description": "", "is_terminal": n not in outgoing} for n in names]
+    events: list = []
+    seen: set = set()
+    for tr in transitions:
+        ev = (tr.get("event") or "").strip()
+        if ev and ev not in seen:
+            seen.add(ev)
+            events.append(ev)
+    return {
+        "name": source_label,
+        "description": "",
+        "initial_state": names[0],
+        "states": states,
+        "transitions": transitions,
+        "events": events,
+    }
+
+
+def heuristic_extract(text: str) -> dict:
+    """Deterministic, AI-free extraction of a state machine from code / procedure text.
+
+    Strategy: first collect explicit arrow edges; if none are found, treat the input as
+    an ordered list of steps (numbered / bulleted / plain lines) chained by a ``next``
+    event. Used as the fallback when no AI client is configured, so the feature works
+    (and is testable) without external dependencies.
+    """
+    lines = text.splitlines()
+
+    transitions: list = []
+    for line in lines:
+        parsed = _extract_transition_line(line)
+        if parsed:
+            frm, to, ev = parsed
+            transitions.append({"from_state": frm, "to_state": to, "event": ev})
+
+    if transitions:
+        names: list = []
+        for tr in transitions:
+            for n in (tr["from_state"], tr["to_state"]):
+                if n not in names:
+                    names.append(n)
+        return _finalize_extracted(names, transitions, "Imported Flow")
+
+    # Fallback: ordered steps chained with a generic "next" event.
+    steps: list = []
+    for line in lines:
+        s = line.strip()
+        if not s:
+            continue
+        s = re.sub(r'^\s*(?:\d+[\.\)]|[-*•])\s*', "", s).strip()
+        if s and s not in steps:
+            steps.append(s)
+
+    transitions = [
+        {"from_state": steps[i], "to_state": steps[i + 1], "event": "next"}
+        for i in range(len(steps) - 1)
+    ]
+    return _finalize_extracted(steps, transitions, "Imported Flow")
+
+
+def _ai_import(text: str, source_type: str) -> dict:
+    """AI-backed extraction of a state machine from code / procedure text."""
+    client = get_genai_client()
+    model_name = get_model_name()
+
+    kind = {
+        "code": "source code",
+        "procedure": "a procedure / operations document",
+    }.get(source_type, "source code or a procedure document")
+
+    system_prompt = (
+        f"You extract a state machine from {kind}.\n"
+        "Identify states, the single initial state, terminal states, and transitions with "
+        "snake_case event names.\n"
+        "Return ONLY a JSON object (no markdown, no prose) with exactly this shape:\n"
+        '{"name": string, "description": string, "initial_state": string, '
+        '"states": [{"name": string, "description": string, "is_terminal": boolean}], '
+        '"transitions": [{"from_state": string, "to_state": string, "event": string}]}\n'
+        "Every transition's from_state and to_state must match a state name."
+    )
+
+    config = gtypes.GenerateContentConfig(
+        system_instruction=system_prompt,
+        response_mime_type="application/json",
+    )
+    prompt = f"Extract the state machine from the following {kind}:\n\n{text}"
+
+    def _generate():
+        return client.models.generate_content(model=model_name, contents=prompt, config=config)
+
+    # Transport errors are retried inside _call_with_retry; a structurally invalid
+    # response surfaces as ValueError and the caller falls back to the heuristic.
+    response = _call_with_retry(_generate)
+    return _parse_response(response)
+
+
+def import_flow(text: str, source_type: str = "auto") -> dict:
+    """Extract a state machine from code / a procedure document.
+
+    Uses the AI client when one is configured, and a deterministic heuristic otherwise
+    (or whenever the AI response cannot be used), so the endpoint always returns a usable
+    result without hard external dependencies.
+    """
+    if gemini_available():
+        try:
+            return _ai_import(text, source_type)
+        except (AIRateLimitError, AIServiceUnavailableError, AIParseError, ValueError, RuntimeError) as e:
+            logger.warning(f"AI import failed, falling back to heuristic: {e}")
+            return heuristic_extract(text)
+    return heuristic_extract(text)

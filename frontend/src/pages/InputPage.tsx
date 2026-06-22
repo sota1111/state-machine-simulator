@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { parseText, refineWorkflow, createModel } from '../api'
+import { parseText, refineWorkflow, importFlow, createModel } from '../api'
 import type { ParseResponse, StateMachine } from '../types'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
@@ -10,7 +10,8 @@ import CoveragePanel from '../components/CoveragePanel'
 import ReviewPanel from '../components/ReviewPanel'
 import TestCasesPanel from '../components/TestCasesPanel'
 
-type Mode = 'ai' | 'manual'
+type Mode = 'ai' | 'import' | 'manual'
+type ImportSource = 'auto' | 'code' | 'procedure'
 
 // AI入力モードの入力例プリセット（SOT-1020 / 提案4）。
 const AI_PRESETS: { labelKey: MessageKey; textKey: MessageKey }[] = [
@@ -37,6 +38,9 @@ export default function InputPage() {
   const [text, setText] = useState('')
   const [parsed, setParsed] = useState<ParseResponse | null>(null)
   const [refineInstruction, setRefineInstruction] = useState('')
+  // Import mode (SOT-1104, 2-E): paste code / a procedure document.
+  const [importText, setImportText] = useState('')
+  const [importSource, setImportSource] = useState<ImportSource>('auto')
   const [error, setError] = useState<string | null>(null)
   // 解析結果カードの詳細項目（フロー名/開始工程/工程一覧/アクション一覧/網羅性チェック）の表示制御。
   // SOT-1082: 初期は非表示にし、トグルで表示/非表示を切り替える。
@@ -78,6 +82,17 @@ export default function InputPage() {
     onSuccess: (data) => {
       setParsed(data)
       setRefineInstruction('')
+      setError(null)
+    },
+    onError: (err: { response?: { data?: { detail?: string } }; message: string }) => {
+      setError(err.response?.data?.detail ?? err.message)
+    }
+  })
+
+  const importMutation = useMutation({
+    mutationFn: () => importFlow(importText, importSource),
+    onSuccess: (data) => {
+      setParsed(data)
       setError(null)
     },
     onError: (err: { response?: { data?: { detail?: string } }; message: string }) => {
@@ -181,12 +196,56 @@ export default function InputPage() {
           {t('input.modeAi')}
         </button>
         <button
+          onClick={() => setMode('import')}
+          className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'import' ? 'bg-blue-600 text-white' : 'bg-surface text-foreground-muted hover:bg-surface-muted'}`}
+        >
+          {t('input.modeImport')}
+        </button>
+        <button
           onClick={() => setMode('manual')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-blue-600 text-white' : 'bg-surface text-foreground-muted hover:bg-surface-muted'}`}
         >
           {t('input.modeManual')}
         </button>
       </div>
+
+      {/* Import mode (SOT-1104, 2-E) */}
+      {mode === 'import' && (
+        <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
+          <p className="text-sm text-foreground-muted">{t('input.importHint')}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-foreground-subtle">{t('input.importSource')}</span>
+            <select
+              value={importSource}
+              onChange={e => setImportSource(e.target.value as ImportSource)}
+              className="text-sm border border-border rounded-md px-2 py-1 bg-surface text-foreground"
+            >
+              <option value="auto">{t('input.importSourceAuto')}</option>
+              <option value="code">{t('input.importSourceCode')}</option>
+              <option value="procedure">{t('input.importSourceProcedure')}</option>
+            </select>
+          </div>
+          <textarea
+            value={importText}
+            onChange={e => setImportText(e.target.value)}
+            placeholder={t('input.importPlaceholder')}
+            className="w-full h-48 px-3 py-2 border border-border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
+              <p className="font-medium">{t('input.importFailed')}</p>
+              <p className="mt-1">{error}</p>
+            </div>
+          )}
+          <button
+            onClick={() => importMutation.mutate()}
+            disabled={!importText.trim() || importMutation.isPending}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {importMutation.isPending ? t('input.importing') : t('input.importBtn')}
+          </button>
+        </div>
+      )}
 
       {/* AI mode */}
       {mode === 'ai' && (
@@ -393,8 +452,8 @@ export default function InputPage() {
         </div>
       )}
 
-      {/* AI parse results */}
-      {parsed && mode === 'ai' && (
+      {/* AI parse / import results */}
+      {parsed && (mode === 'ai' || mode === 'import') && (
         <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
           <h2 className="font-semibold text-foreground">{t('input.parseResult')}</h2>
 
@@ -466,7 +525,7 @@ export default function InputPage() {
               )}
 
               {previewMachine && previewMachine.states.length > 0 && (
-                <ReviewPanel machine={previewMachine} specText={text} />
+                <ReviewPanel machine={previewMachine} specText={mode === 'import' ? importText : text} />
               )}
 
               {previewMachine && previewMachine.states.length > 0 && (
