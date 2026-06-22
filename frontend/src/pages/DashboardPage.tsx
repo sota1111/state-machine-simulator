@@ -1,10 +1,30 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getModels, getAnalysis } from '../api'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { useI18n } from '../i18n/useI18n'
+import { sampleLabel } from '../i18n/sampleLabels'
+import { buildReachFunnel } from '../utils/flow'
+
+// Static class maps: Tailwind cannot see dynamically-built class strings (e.g. `bg-${color}-50`),
+// so list the full class names here to guarantee they are emitted.
+const kpiCardClass: Record<string, string> = {
+  blue: 'bg-blue-50 border-blue-100',
+  green: 'bg-green-50 border-green-100',
+  purple: 'bg-purple-50 border-purple-100',
+  orange: 'bg-orange-50 border-orange-100',
+}
+const kpiValueClass: Record<string, string> = {
+  blue: 'text-blue-600',
+  green: 'text-green-600',
+  purple: 'text-purple-600',
+  orange: 'text-orange-600',
+}
 
 export default function DashboardPage() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const [selectedId, setSelectedId] = useState<string>('')
+
   const { data: models, isLoading } = useQuery({
     queryKey: ['models'],
     queryFn: () => getModels(),
@@ -34,6 +54,10 @@ export default function DashboardPage() {
     [transitionsLabel]: m.transitions.length,
   })) ?? []
 
+  const selectedModel = models?.find(m => m.id === selectedId) ?? models?.[0]
+  const funnel = selectedModel ? buildReachFunnel(selectedModel) : []
+  const funnelMax = funnel.reduce((max, s) => Math.max(max, s.count), 0)
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">{t('dash.title')}</h1>
@@ -45,11 +69,58 @@ export default function DashboardPage() {
           { label: t('dash.totalTransitions'), value: totalTransitions, color: 'purple' },
           { label: t('dash.simulations'), value: totalSimulations, color: 'orange' },
         ].map(({ label, value, color }) => (
-          <div key={label} className={`bg-${color}-50 border border-${color}-100 rounded-lg p-4 text-center`}>
-            <div className={`text-3xl font-bold text-${color}-600`}>{value}</div>
+          <div key={label} className={`${kpiCardClass[color]} border rounded-lg p-4 text-center`}>
+            <div className={`text-3xl font-bold ${kpiValueClass[color]}`}>{value}</div>
             <div className="text-sm text-gray-600 mt-1">{label}</div>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="font-semibold text-gray-700">{t('dash.funnelTitle')}</h2>
+          {models && models.length > 0 && (
+            <select
+              value={selectedModel?.id ?? ''}
+              onChange={e => setSelectedId(e.target.value)}
+              className="max-w-[60%] rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              aria-label={t('dash.selectFlow')}
+            >
+              {models.map(m => (
+                <option key={m.id} value={m.id}>{sampleLabel(m.name, lang)}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {funnel.length === 0 ? (
+          <p className="text-sm text-gray-400">{t('dash.funnelEmpty')}</p>
+        ) : (
+          <div className="space-y-2">
+            {funnel.map((stage, i) => {
+              const widthPct = funnelMax > 0 ? Math.max(8, (stage.count / funnelMax) * 100) : 0
+              const conversion = i > 0 && funnel[i - 1].count > 0
+                ? Math.round((stage.count / funnel[i - 1].count) * 100)
+                : null
+              return (
+                <div key={stage.depth} className="flex items-center gap-3">
+                  <span className="w-20 shrink-0 text-xs text-gray-500">{t('dash.stage')} {stage.depth + 1}</span>
+                  <div className="flex-1 bg-gray-100 rounded">
+                    <div
+                      className="bg-blue-500 text-white text-xs font-medium rounded px-2 py-1 whitespace-nowrap"
+                      style={{ width: `${widthPct}%` }}
+                    >
+                      {stage.count} {t('dash.reachedSteps')}
+                    </div>
+                  </div>
+                  <span className="w-20 shrink-0 text-right text-xs text-gray-500">
+                    {conversion !== null ? `${t('dash.conversion')} ${conversion}%` : '—'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {stateChartData.length > 0 && (
@@ -85,13 +156,13 @@ export default function DashboardPage() {
               <tbody>
                 {models.map((m, i) => (
                   <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2 px-3 font-medium text-gray-900" data-label={t('dash.colModel')}>{m.name}</td>
+                    <td className="py-2 px-3 font-medium text-gray-900" data-label={t('dash.colModel')}>{sampleLabel(m.name, lang)}</td>
                     <td className="py-2 px-3 text-right text-gray-700" data-label={t('dash.colStates')}>{m.states.length}</td>
                     <td className="py-2 px-3 text-right text-gray-700" data-label={t('dash.colTransitions')}>{m.transitions.length}</td>
                     <td className="py-2 px-3 text-right text-gray-700" data-label={t('dash.colSim')}>
                       {analysisQueries.data?.[i]?.simulation_run_count ?? '-'}
                     </td>
-                    <td className="py-2 px-3 text-gray-700" data-label={t('dash.colInitial')}>{m.initial_state}</td>
+                    <td className="py-2 px-3 text-gray-700" data-label={t('dash.colInitial')}>{sampleLabel(m.initial_state, lang)}</td>
                   </tr>
                 ))}
               </tbody>
