@@ -73,6 +73,22 @@ export interface AnalysisResult {
   simulation_run_count: number
 }
 
+// Version history (SOT-1102)
+export interface StateMachineVersionSummary {
+  version: number
+  saved_at: string
+}
+
+export interface StateMachineVersion {
+  version: number
+  saved_at: string
+  name: string
+  description: string
+  initial_state: string
+  states: State[]
+  transitions: Transition[]
+}
+
 export interface ParseRequest {
   text: string
 }

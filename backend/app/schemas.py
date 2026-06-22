@@ -78,6 +78,20 @@ class StateMachineResponse(BaseModel):
     def _coerce_description(cls, value: Optional[str]) -> str:
         return _none_to_empty(value)
 
+# Version history schemas (SOT-1102)
+class StateMachineVersionSummary(BaseModel):
+    version: int
+    saved_at: datetime
+
+class StateMachineVersion(BaseModel):
+    version: int
+    saved_at: datetime
+    name: str
+    description: str
+    initial_state: str
+    states: List[StateResponse]
+    transitions: List[TransitionResponse]
+
 # Simulation schemas
 class SimulateRequest(BaseModel):
     current_state: str

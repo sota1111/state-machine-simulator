@@ -1,6 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from ..schemas import StateMachineCreate, StateMachineResponse, AnalysisResponse
+from ..schemas import (
+    StateMachineCreate,
+    StateMachineResponse,
+    AnalysisResponse,
+    StateMachineVersionSummary,
+    StateMachineVersion,
+)
 
 class StateMachineRepository(ABC):
     @abstractmethod
@@ -33,4 +39,14 @@ class StateMachineRepository(ABC):
 
     @abstractmethod
     def get_simulation_history(self, id: str) -> List[dict]:
+        pass
+
+    @abstractmethod
+    def list_versions(self, id: str) -> Optional[List[StateMachineVersionSummary]]:
+        """Return version snapshots (newest first), or None if the machine is missing."""
+        pass
+
+    @abstractmethod
+    def get_version(self, id: str, version: int) -> Optional[StateMachineVersion]:
+        """Return a single version snapshot, or None if the machine/version is missing."""
         pass

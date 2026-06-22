@@ -10,6 +10,7 @@ import CoveragePanel from '../components/CoveragePanel'
 import ReviewPanel from '../components/ReviewPanel'
 import TestCasesPanel from '../components/TestCasesPanel'
 import ReviewComments from '../components/ReviewComments'
+import VersionHistoryPanel from '../components/VersionHistoryPanel'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useI18n } from '../i18n/useI18n'
@@ -155,6 +156,7 @@ export default function DetailPage() {
           <CoveragePanel machine={machine} />
           <ReviewPanel machine={machine} />
           <TestCasesPanel machine={machine} />
+          <VersionHistoryPanel machine={machine} />
           <ReviewComments machineId={machine.id} />
         </div>
       </div>

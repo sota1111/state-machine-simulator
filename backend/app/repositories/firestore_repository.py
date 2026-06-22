@@ -3,8 +3,16 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from .base import StateMachineRepository
 from ..schemas import (
-    StateMachineCreate, StateMachineResponse, StateResponse, TransitionResponse, AnalysisResponse
+    StateMachineCreate, StateMachineResponse, StateResponse, TransitionResponse, AnalysisResponse,
+    StateMachineVersionSummary, StateMachineVersion,
 )
+from .memory_repository import build_version_snapshot, _snapshot_states, _snapshot_transitions
+
+
+def _coerce_dt(value, fallback):
+    if hasattr(value, "seconds"):
+        return datetime.fromtimestamp(value.seconds, tz=timezone.utc)
+    return value or fallback
 
 class FirestoreStateMachineRepository(StateMachineRepository):
     COLLECTION = "state_machines"
@@ -123,6 +131,10 @@ class FirestoreStateMachineRepository(StateMachineRepository):
             for t in data.transitions
         ]
 
+        # Snapshot the pre-update content into the version history (SOT-1102).
+        version_snapshot = build_version_snapshot(existing, now)
+        versions = [*existing.get("versions", []), version_snapshot]
+
         updated = {
             **existing,
             "name": data.name,
@@ -131,6 +143,7 @@ class FirestoreStateMachineRepository(StateMachineRepository):
             "states": states,
             "transitions": transitions,
             "updated_at": now,
+            "versions": versions,
         }
 
         doc_ref.set(updated)
@@ -167,6 +180,37 @@ class FirestoreStateMachineRepository(StateMachineRepository):
             "executed_at": now
         }
         self.db.collection(self.HISTORY_COLLECTION).document(history_id).set(doc_data)
+
+    def list_versions(self, id: str) -> Optional[List[StateMachineVersionSummary]]:
+        doc = self.db.collection(self.COLLECTION).document(id).get()
+        if not doc.exists or doc.to_dict().get("is_deleted"):
+            return None
+        now = datetime.now(timezone.utc)
+        versions = doc.to_dict().get("versions", [])
+        summaries = [
+            StateMachineVersionSummary(version=v["version"], saved_at=_coerce_dt(v.get("saved_at"), now))
+            for v in versions
+        ]
+        summaries.sort(key=lambda s: s.version, reverse=True)
+        return summaries
+
+    def get_version(self, id: str, version: int) -> Optional[StateMachineVersion]:
+        doc = self.db.collection(self.COLLECTION).document(id).get()
+        if not doc.exists or doc.to_dict().get("is_deleted"):
+            return None
+        now = datetime.now(timezone.utc)
+        snapshot = next((v for v in doc.to_dict().get("versions", []) if v["version"] == version), None)
+        if snapshot is None:
+            return None
+        return StateMachineVersion(
+            version=snapshot["version"],
+            saved_at=_coerce_dt(snapshot.get("saved_at"), now),
+            name=snapshot["name"],
+            description=snapshot.get("description", ""),
+            initial_state=snapshot["initial_state"],
+            states=_snapshot_states(id, snapshot),
+            transitions=_snapshot_transitions(id, snapshot),
+        )
 
     def get_simulation_history(self, id: str) -> List[dict]:
         docs = self.db.collection(self.HISTORY_COLLECTION)\

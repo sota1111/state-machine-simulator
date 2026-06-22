@@ -3,7 +3,8 @@ from typing import List, Optional
 from ..dependencies import get_repository
 from ..repositories.base import StateMachineRepository
 from ..schemas import (
-    StateMachineCreate, StateMachineResponse, AnalysisResponse
+    StateMachineCreate, StateMachineResponse, AnalysisResponse,
+    StateMachineVersionSummary, StateMachineVersion,
 )
 from ..services.validation import validate_business_rules
 
@@ -49,3 +50,17 @@ def get_analysis(id: str, repo: StateMachineRepository = Depends(get_repository)
     if not analysis:
         raise HTTPException(status_code=404, detail="State Machine not found")
     return analysis
+
+@router.get("/{id}/versions", response_model=List[StateMachineVersionSummary])
+def list_versions(id: str, repo: StateMachineRepository = Depends(get_repository)):
+    versions = repo.list_versions(id)
+    if versions is None:
+        raise HTTPException(status_code=404, detail="State Machine not found")
+    return versions
+
+@router.get("/{id}/versions/{version}", response_model=StateMachineVersion)
+def get_version(id: str, version: int, repo: StateMachineRepository = Depends(get_repository)):
+    snapshot = repo.get_version(id, version)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    return snapshot
