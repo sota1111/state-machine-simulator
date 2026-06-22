@@ -58,7 +58,9 @@ def test_refine_success(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert response.json() == refined
+    # The router adds an `events` field (defaults to [] when the mock bypasses
+    # _parse_response, which is where events are normally derived). SOT-1095.
+    assert response.json() == {**refined, "events": []}
 
 
 def test_refine_empty_instruction_returns_400(monkeypatch):
@@ -97,3 +99,40 @@ def test_refine_empty_states_returns_400(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Current workflow has no states to refine"
+
+
+class _FakeResponse:
+    """Minimal stand-in for a google-genai response (only `.text` is used)."""
+
+    def __init__(self, text):
+        self.text = text
+
+
+def test_parse_response_derives_unique_events():
+    """_parse_response derives a de-duplicated, first-seen-ordered event list
+    from the transitions (SOT-1095)."""
+    import json as _json
+
+    from app.services.nlp import _parse_response
+
+    payload = {
+        "name": "Order",
+        "initial_state": "Draft",
+        "states": [
+            {"name": "Draft"},
+            {"name": "Review"},
+            {"name": "Done"},
+        ],
+        "transitions": [
+            {"from_state": "Draft", "to_state": "Review", "event": "submit"},
+            {"from_state": "Review", "to_state": "Draft", "event": "reject"},
+            {"from_state": "Review", "to_state": "Done", "event": "submit"},
+            {"from_state": "Done", "to_state": "Done", "event": ""},
+        ],
+    }
+
+    result = _parse_response(_FakeResponse(_json.dumps(payload)))
+
+    # "submit" appears twice but is listed once; first-seen order preserved;
+    # the blank event is excluded.
+    assert result["events"] == ["submit", "reject"]

@@ -83,6 +83,8 @@ export interface ParseResponse {
   initial_state: string
   states: Array<{ name: string; description: string; is_terminal: boolean }>
   transitions: Array<{ from_state: string; to_state: string; event: string }>
+  // Unique event names derived from the transitions (SOT-1095).
+  events: string[]
 }
 
 export interface RefineRequest {

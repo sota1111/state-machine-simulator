@@ -437,6 +437,17 @@ export default function InputPage() {
                 </div>
               </div>
 
+              {parsed.events.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.eventsList')} ({parsed.events.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {parsed.events.map(ev => (
+                      <span key={ev} className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800 font-mono">{ev}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
                 <div className="space-y-1">

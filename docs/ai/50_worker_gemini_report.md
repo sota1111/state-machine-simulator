@@ -1,34 +1,31 @@
-# Worker Report (SOT-1077)
+# Worker Report (Claude Code Fallback — SOT-1095)
 
 ## Fallback Disclosure (audit)
-- Non-responsive worker: **Gemini** (`scripts/ai/run_gemini.sh`)
-- Detected failure mode: CLI crashed with `IneligibleTierError` (UNSUPPORTED_CLIENT, free-tier no longer
-  supported for Gemini Code Assist) → run script exited `75`.
-- Action: Per Worker Non-Response Fallback Policy, **Claude Code performed this implementation directly.**
+- Non-responsive worker: Gemini CLI
+- Detected failure mode: crash / auth — `IneligibleTierError: UNSUPPORTED_CLIENT` (free-tier no longer supported), run script exited 75 (WORKER_NONRESPONSE).
+- Action: Per Worker Non-Response Fallback Policy, Claude Code performed this implementation directly.
 
 ## Summary
-修正モード（図エディタ `StateDiagramEditor.tsx`）に縦/横の表示切替を追加。デフォルトを縦表示にし、
-読み取り専用ビューと揃えた。`stateEditorModel.ts` の BFS レイアウトを向き対応にし、既存ノードを
-再配置する純粋関数 `arrangeLayout(model, isVertical)` を追加。
+SOT-1095「生成結果にイベント一覧を明示する」を実装。transitions から一意なイベント名を導出し、parse/refine レスポンスに `events` を追加、フロントの解析結果詳細に「イベント一覧」セクションを表示。
 
 ## Changed Files
-- `frontend/src/components/stateEditorModel.ts` — `computeLayout` に `isVertical`（デフォルト false で
-  既存横方向を維持）を追加。縦方向では層を下方向(y)・兄弟を横方向(x)に配置。新規 export `arrangeLayout`。
-- `frontend/src/components/StateDiagramEditor.tsx` — `isVertical` state（デフォルト true）、初期 model を
-  縦配置、ツールバーに「縦表示にする ↓ / 横表示にする →」切替ボタンを追加（トグルで `arrangeLayout` 再配置）。
-- `frontend/src/components/stateEditorModel.test.ts` — `arrangeLayout` のテスト3件追加（縦/横の主軸・identity 保持）。
+- `backend/app/services/nlp.py` — `_parse_response()` で transitions から一意イベントを first-seen順で導出し `result["events"]` にセット（空文字除外・重複排除）
+- `backend/app/routers/parse.py` — `ParseResponse` に `events: list[str] = []` 追加（旧キャッシュ互換のためデフォルト空）
+- `frontend/src/types/index.ts` — `ParseResponse.events: string[]` 追加
+- `frontend/src/pages/InputPage.tsx` — 詳細セクションに「イベント一覧」チップ表示（状態一覧と遷移一覧の間）
+- `frontend/src/i18n/messages.ts` — `detail.eventsList`（ja: イベント一覧 / en: Events）
+- `backend/tests/test_parse_refine.py` — events 導出ユニットテスト追加 + 既存 test_refine_success の期待値に events を反映
 
 ## Commands Run
-（Codex 検証で実行）
+- (verification delegated to Codex — see 60_worker_codex_report.md)
 
 ## Acceptance Criteria
-- [x] 修正モードで縦表示が使える（デフォルト縦 + 切替ボタン）
-- [x] 既存の横方向初期配置の挙動は computeLayout デフォルト引数で保持
-- [x] 保存契約（toStateMachineInput）不変
+- [x] 生成結果に状態一覧・イベント一覧・遷移一覧が揃って表示される
+- [x] events は遷移から一意に導出され重複しない
+- [x] 既存の parse/refine 挙動が壊れない（events はオプショナル追加）
 
 ## Risks
-- 座標は保存対象外のため、向き切替・初期表示の再配置は編集中の表示補助。手動ドラッグ位置は
-  切替時に再配置で上書きされる（仕様どおり、ユーザー操作起点）。
+- events は表示専用。保存(StateMachineCreate)スキーマは変更しておらず、永続化はしない（遷移から常に導出可能なため）。
 
 ## Next Action
-NEEDS_DEBUG
+READY_FOR_REVIEW
