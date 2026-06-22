@@ -95,3 +95,35 @@ export interface RefineRequest {
   states: Array<{ name: string; description: string; is_terminal: boolean }>
   transitions: Array<{ from_state: string; to_state: string; event: string }>
 }
+
+// Design-review (SOT-1096)
+export type ReviewFindingType =
+  | 'unreachable_state'
+  | 'undefined_event'
+  | 'non_terminating'
+  | 'missing_error_handling'
+  | 'missing_cancel'
+  | 'missing_timeout'
+  | 'ambiguous_condition'
+
+export type ReviewSeverity = 'error' | 'warning' | 'info'
+
+export interface ReviewFinding {
+  type: ReviewFindingType
+  severity: ReviewSeverity
+  target: string
+  reason: string
+  suggestion: string
+}
+
+export interface ReviewRequest {
+  initial_state: string
+  states: Array<{ name: string; description: string; is_terminal: boolean }>
+  transitions: Array<{ from_state: string; to_state: string; event: string }>
+  spec_text?: string
+}
+
+export interface ReviewResponse {
+  findings: ReviewFinding[]
+  ai_used: boolean
+}

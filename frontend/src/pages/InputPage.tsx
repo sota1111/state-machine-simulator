@@ -7,6 +7,7 @@ import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
 import StateDiagram from '../components/StateDiagram'
 import CoveragePanel from '../components/CoveragePanel'
+import ReviewPanel from '../components/ReviewPanel'
 
 type Mode = 'ai' | 'manual'
 
@@ -461,6 +462,10 @@ export default function InputPage() {
 
               {previewMachine && previewMachine.states.length > 0 && (
                 <CoveragePanel machine={previewMachine} />
+              )}
+
+              {previewMachine && previewMachine.states.length > 0 && (
+                <ReviewPanel machine={previewMachine} specText={text} />
               )}
             </div>
           )}

@@ -103,3 +103,28 @@ class AnalysisResponse(BaseModel):
     state_count: int
     transition_count: int
     simulation_run_count: int
+
+# Design-review schemas (SOT-1096)
+class ReviewRequest(BaseModel):
+    initial_state: str
+    states: List[StateCreate]
+    transitions: List[TransitionCreate]
+    # Original natural-language specification, used to enrich AI-assisted findings.
+    spec_text: Optional[str] = None
+
+class ReviewFinding(BaseModel):
+    # type: unreachable_state | undefined_event | non_terminating | missing_error_handling
+    #     | missing_cancel | missing_timeout | ambiguous_condition
+    type: str
+    # severity: error | warning | info
+    severity: str
+    # The state name / event / transition the finding refers to (may be empty for
+    # machine-wide findings).
+    target: str = ""
+    reason: str
+    suggestion: str
+
+class ReviewResponse(BaseModel):
+    findings: List[ReviewFinding]
+    # True when AI augmentation contributed findings (false in deterministic-only fallback).
+    ai_used: bool = False

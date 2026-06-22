@@ -6,7 +6,7 @@ import os
 from .dependencies import get_current_user
 from .routers import auth as auth_router
 from .routers import models as models_router
-from .routers import simulate, parse
+from .routers import simulate, parse, review
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ app.include_router(auth_router.router, prefix="/api")
 app.include_router(models_router.router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(simulate.router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(parse.router, prefix="/api", dependencies=[Depends(get_current_user)])
+app.include_router(review.router, prefix="/api", dependencies=[Depends(get_current_user)])
 
 def _check_auth_config():
     """Log each missing auth setting distinctly at startup so that

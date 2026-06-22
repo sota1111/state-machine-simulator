@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { StateMachine, StateMachineInput, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse, RefineRequest } from '../types'
+import type { StateMachine, StateMachineInput, SimulateRequest, SimulateResponse, SimulationHistory, AnalysisResult, ParseResponse, RefineRequest, ReviewRequest, ReviewResponse } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -54,3 +54,6 @@ export const parseText = (text: string): Promise<ParseResponse> =>
 
 export const refineWorkflow = (data: RefineRequest): Promise<ParseResponse> =>
   api.post('/parse/refine', data).then(r => r.data)
+
+export const reviewMachine = (data: ReviewRequest): Promise<ReviewResponse> =>
+  api.post('/review/', data).then(r => r.data)
