@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import type { StateMachine, TestCase, TestCaseCategory } from '../types'
 import { generateTestCases } from '../api'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
+import { generateCoveragePaths, type CoverageRun } from '../utils/coveragePaths'
+import { useSimulationStore } from '../store/simulationStore'
 
 interface Props {
   machine: StateMachine
@@ -28,6 +31,8 @@ const CATEGORY_ORDER: TestCaseCategory[] = ['normal', 'abnormal', 'cancel', 'tim
 // timeout cases from the machine via backend /api/testcases.
 export default function TestCasesPanel({ machine }: Props) {
   const { t } = useI18n()
+  const setPendingSequence = useSimulationStore(state => state.setPendingSequence)
+  const [coverage, setCoverage] = useState<CoverageRun | null>(null)
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -39,6 +44,11 @@ export default function TestCasesPanel({ machine }: Props) {
   })
 
   const cases: TestCase[] = mutation.data?.cases ?? []
+
+  // Feed an event sequence into the simulator's sequence playback (2-A).
+  const runInSimulator = (events: string[]) => {
+    if (events.length > 0) setPendingSequence(events)
+  }
 
   return (
     <div className="bg-surface rounded-lg border border-border shadow-card p-4 space-y-3">
@@ -83,10 +93,54 @@ export default function TestCasesPanel({ machine }: Props) {
               <p className="text-sm text-foreground-muted">
                 <span className="font-medium">{t('testcase.expected')}: </span>{c.expected}
               </p>
+              {c.steps.length > 0 && (
+                <button
+                  onClick={() => runInSimulator(c.steps.map(s => s.event))}
+                  className="px-2.5 py-1 border border-border text-foreground-muted rounded text-xs hover:bg-surface-muted transition-colors"
+                >
+                  ▶ {t('testcase.runInSim')}
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Full-transition coverage generation (SOT-1103, 2-D). */}
+      <div className="border-t border-border pt-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium text-foreground-muted">{t('testcase.coverageTitle')}</p>
+          <button
+            onClick={() => setCoverage(generateCoveragePaths(machine))}
+            className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 transition-colors"
+          >
+            {t('testcase.generateCoverage')}
+          </button>
+        </div>
+        {coverage && (
+          coverage.totalReachableTransitions === 0 ? (
+            <p className="text-sm text-foreground-subtle italic">{t('testcase.coverageEmpty')}</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-foreground-muted">
+                {t('testcase.coverageRate')}: {coverage.coveredTransitions}/{coverage.totalReachableTransitions}
+                {' '}({Math.round((coverage.coveredTransitions / coverage.totalReachableTransitions) * 100)}%)
+              </p>
+              {coverage.sequences.map((seq, i) => (
+                <div key={i} className="rounded border border-border p-2 space-y-1">
+                  <p className="text-xs font-mono text-foreground-muted break-words">{seq.join(' → ')}</p>
+                  <button
+                    onClick={() => runInSimulator(seq)}
+                    className="px-2.5 py-1 border border-border text-foreground-muted rounded text-xs hover:bg-surface-muted transition-colors"
+                  >
+                    ▶ {t('testcase.runInSim')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   )
 }

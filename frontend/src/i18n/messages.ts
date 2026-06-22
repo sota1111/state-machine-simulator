@@ -240,6 +240,11 @@ export const messages = {
     'testcase.cat.abnormal': '異常系',
     'testcase.cat.cancel': 'キャンセル系',
     'testcase.cat.timeout': 'タイムアウト系',
+    'testcase.runInSim': 'シミュレータで実行',
+    'testcase.coverageTitle': '全遷移網羅',
+    'testcase.generateCoverage': '網羅生成',
+    'testcase.coverageRate': '網羅率',
+    'testcase.coverageEmpty': '到達可能な遷移がありません。',
   },
   en: {
     'app.footerTagline': 'Inspect business flows for gaps with AI',
@@ -476,6 +481,11 @@ export const messages = {
     'testcase.cat.abnormal': 'Abnormal',
     'testcase.cat.cancel': 'Cancel',
     'testcase.cat.timeout': 'Timeout',
+    'testcase.runInSim': 'Run in simulator',
+    'testcase.coverageTitle': 'Full transition coverage',
+    'testcase.generateCoverage': 'Generate coverage',
+    'testcase.coverageRate': 'Coverage',
+    'testcase.coverageEmpty': 'No reachable transitions.',
   },
 } as const
 
