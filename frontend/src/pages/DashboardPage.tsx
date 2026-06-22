@@ -15,10 +15,10 @@ const kpiCardClass: Record<string, string> = {
   orange: 'bg-orange-50 border-orange-100',
 }
 const kpiValueClass: Record<string, string> = {
-  blue: 'text-blue-600',
-  green: 'text-green-600',
-  purple: 'text-purple-600',
-  orange: 'text-orange-600',
+  blue: 'text-black',
+  green: 'text-black',
+  purple: 'text-black',
+  orange: 'text-black',
 }
 
 export default function DashboardPage() {
