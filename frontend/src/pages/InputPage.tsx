@@ -36,6 +36,9 @@ export default function InputPage() {
   const [parsed, setParsed] = useState<ParseResponse | null>(null)
   const [refineInstruction, setRefineInstruction] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // 解析結果カードの詳細項目（フロー名/開始工程/工程一覧/アクション一覧/網羅性チェック）の表示制御。
+  // SOT-1082: 初期は非表示にし、トグルで表示/非表示を切り替える。
+  const [showDetails, setShowDetails] = useState(false)
 
   // Manual mode state
   const [manualName, setManualName] = useState('')
@@ -212,6 +215,19 @@ export default function InputPage() {
             />
           </div>
 
+          {/* 自然言語による修正（SOT-1076）。SOT-1082: 記述textareaの直下に配置。解析済みのときのみ表示。 */}
+          {parsed && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-foreground-muted">{t('input.refineLabel')}</label>
+              <textarea
+                value={refineInstruction}
+                onChange={(e) => setRefineInstruction(e.target.value)}
+                placeholder={t('input.refinePlaceholder')}
+                className="w-full h-24 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              />
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
               <p className="font-medium">{t('input.aiFailed')}</p>
@@ -232,13 +248,25 @@ export default function InputPage() {
             </div>
           )}
 
-          <button
-            onClick={() => parseMutation.mutate(text)}
-            disabled={!text.trim() || parseMutation.isPending}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {parseMutation.isPending ? t('input.parsing') : t('input.parseBtn')}
-          </button>
+          {/* SOT-1082: 「AIで解析する」と「🪄 修正する」を横並びで表示。修正は解析済みのときのみ。 */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => parseMutation.mutate(text)}
+              disabled={!text.trim() || parseMutation.isPending}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {parseMutation.isPending ? t('input.parsing') : t('input.parseBtn')}
+            </button>
+            {parsed && (
+              <button
+                onClick={() => refineMutation.mutate(refineInstruction)}
+                disabled={!refineInstruction.trim() || refineMutation.isPending}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {refineMutation.isPending ? t('input.refining') : t('input.refineBtn')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -368,39 +396,7 @@ export default function InputPage() {
         <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
           <h2 className="font-semibold text-foreground">{t('input.parseResult')}</h2>
 
-          <div className="grid gap-3">
-            <div>
-              <span className="text-sm font-medium text-foreground-subtle">{t('input.modelNameField')}:</span>
-              <span className="ml-2 text-sm text-foreground">{parsed.name}</span>
-            </div>
-            <div>
-              <span className="text-sm font-medium text-foreground-subtle">{t('input.initialStateField')}:</span>
-              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-sm">{parsed.initial_state}</span>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.statesList')} ({parsed.states.length})</p>
-            <div className="flex flex-wrap gap-2">
-              {parsed.states.map(s => (
-                <span key={s.name} className={`px-2 py-1 rounded text-xs ${s.is_terminal ? 'bg-surface-muted text-foreground-muted' : 'bg-green-100 text-green-800'}`}>
-                  {s.name}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
-            <div className="space-y-1">
-              {parsed.transitions.map((t, i) => (
-                <div key={i} className="text-xs text-foreground-muted font-mono bg-surface-muted px-2 py-1 rounded">
-                  {t.from_state} --[{t.event}]--&gt; {t.to_state}
-                </div>
-              ))}
-            </div>
-          </div>
-
+          {/* SOT-1082: 業務フロー図を最上部に配置 */}
           {previewMachine && previewMachine.states.length > 0 && (
             <div>
               <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.diagram')}</p>
@@ -408,30 +404,55 @@ export default function InputPage() {
             </div>
           )}
 
-          {previewMachine && previewMachine.states.length > 0 && (
-            <CoveragePanel machine={previewMachine} />
-          )}
+          {/* SOT-1082: 詳細項目（フロー名/開始工程/工程一覧/アクション一覧/網羅性チェック）の表示切替。初期非表示。 */}
+          <button
+            type="button"
+            onClick={() => setShowDetails(v => !v)}
+            className="px-3 py-1.5 border border-border rounded text-sm font-medium text-foreground-muted hover:bg-surface-muted transition-colors"
+          >
+            {showDetails ? t('input.hideDetails') : t('input.showDetails')}
+          </button>
 
-          {/* 自然言語による修正（SOT-1076）。生成済みワークフローを再生成して差し替える。 */}
-          <div className="border-t border-border pt-4 space-y-2">
-            <label className="block text-sm font-medium text-foreground-muted">{t('input.refineLabel')}</label>
-            <textarea
-              value={refineInstruction}
-              onChange={(e) => setRefineInstruction(e.target.value)}
-              placeholder={t('input.refinePlaceholder')}
-              className="w-full h-24 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-            />
-            {refineMutation.isError && error && (
-              <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">{error}</div>
-            )}
-            <button
-              onClick={() => refineMutation.mutate(refineInstruction)}
-              disabled={!refineInstruction.trim() || refineMutation.isPending}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {refineMutation.isPending ? t('input.refining') : t('input.refineBtn')}
-            </button>
-          </div>
+          {showDetails && (
+            <div className="space-y-4">
+              <div className="grid gap-3">
+                <div>
+                  <span className="text-sm font-medium text-foreground-subtle">{t('input.modelNameField')}:</span>
+                  <span className="ml-2 text-sm text-foreground">{parsed.name}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-foreground-subtle">{t('input.initialStateField')}:</span>
+                  <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-sm">{parsed.initial_state}</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.statesList')} ({parsed.states.length})</p>
+                <div className="flex flex-wrap gap-2">
+                  {parsed.states.map(s => (
+                    <span key={s.name} className={`px-2 py-1 rounded text-xs ${s.is_terminal ? 'bg-surface-muted text-foreground-muted' : 'bg-green-100 text-green-800'}`}>
+                      {s.name}{s.is_terminal ? ` (${t('detail.terminalTag')})` : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-foreground-subtle mb-2">{t('detail.transitionsList')} ({parsed.transitions.length})</p>
+                <div className="space-y-1">
+                  {parsed.transitions.map((t, i) => (
+                    <div key={i} className="text-xs text-foreground-muted font-mono bg-surface-muted px-2 py-1 rounded">
+                      {t.from_state} --[{t.event}]--&gt; {t.to_state}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {previewMachine && previewMachine.states.length > 0 && (
+                <CoveragePanel machine={previewMachine} />
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button
