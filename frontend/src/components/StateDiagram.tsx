@@ -307,7 +307,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
   }
 
   return (
-    <div ref={containerRef} className="bg-white rounded-lg border border-gray-200 p-4 overflow-auto">
+    <div ref={containerRef} className="bg-surface rounded-lg border border-gray-200 shadow-card p-4 overflow-auto">
       {/* Controls: layout direction toggle + zoom (拡大縮小) */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-xs text-gray-500">{t('diagram.direction')}</span>
@@ -439,6 +439,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                   strokeWidth={strokeWidth}
                   strokeDasharray={dashArray}
                   markerEnd={marker}
+                  className={isAvailable ? 'sm-edge-available' : undefined}
                 />
                 <text
                   className="text-[10px] font-mono"
@@ -514,6 +515,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                   fill={fill}
                   stroke={stroke}
                   strokeWidth={strokeWidth}
+                  className={isCurrent ? 'sm-node-current' : undefined}
                 />
                 <text
                   x={x + width / 2}

@@ -19,7 +19,7 @@ export default function AnalysisPanel({ analysis }: Props) {
   const clean = issueCount === 0
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+    <div className="bg-surface rounded-lg border border-gray-200 shadow-card p-4 space-y-4 nums">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-semibold text-gray-800">{t('analysis.title')}</h3>
         <span
