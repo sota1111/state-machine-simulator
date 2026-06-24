@@ -46,8 +46,8 @@ function Layout() {
               {isAuthenticated && (
                 <>
                   <div className="hidden sm:flex gap-2">
-                    <NavLink to="/input">{t('nav.create')}</NavLink>
                     <NavLink to="/">{t('nav.list')}</NavLink>
+                    <NavLink to="/input">{t('nav.create')}</NavLink>
                     <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
                   </div>
                   <button
@@ -64,8 +64,8 @@ function Layout() {
           {/* Mobile navigation */}
           {isAuthenticated && (
             <div className="sm:hidden pb-3 flex flex-nowrap gap-2 overflow-x-auto">
-              <NavLink to="/input">{t('nav.create')}</NavLink>
               <NavLink to="/">{t('nav.list')}</NavLink>
+              <NavLink to="/input">{t('nav.create')}</NavLink>
               <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
             </div>
           )}
