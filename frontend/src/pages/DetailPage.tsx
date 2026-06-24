@@ -17,6 +17,7 @@ import VersionHistoryPanel from '../components/VersionHistoryPanel'
 import { useSimulationStore } from '../store/simulationStore'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useI18n } from '../i18n/useI18n'
+import type { MessageKey } from '../i18n/messages'
 import { sampleLabel } from '../i18n/sampleLabels'
 import { buildProcedureSteps, toPlantUml } from '../utils/flow'
 
@@ -33,6 +34,10 @@ export default function DetailPage() {
   const [reviewFindings, setReviewFindings] = useState<ReviewFinding[]>([])
   const [testCases, setTestCases] = useState<TestCase[]>([])
   const [versionDiff, setVersionDiff] = useState<FlowDiff | null>(null)
+
+  // SOT-1224 (案A): the feature panels are shown as tabs instead of one tall vertical stack.
+  // `DetailTab` keys reuse the DeliverableStage values so a diagram badge can activate its tab.
+  const [activeTab, setActiveTab] = useState<DeliverableStage | 'comments'>('simulation')
 
   // Transition direction is owned here (lifted out of StateDiagram) so it can also drive
   // the page layout: on PC + vertical direction, the event buttons move beside the diagram.
@@ -78,10 +83,25 @@ export default function DetailPage() {
     [machine, currentState, visitedTransitionIds, analysis, reviewFindings, testCases, versionDiff],
   )
 
-  // Badge / popover "jump to panel" — scroll the matching 工程 panel into view.
+  // Badge / popover "jump to panel" — activate the matching tab, then scroll it into view.
   const navigateToStage = (stage: DeliverableStage) => {
-    document.getElementById(`panel-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setActiveTab(stage)
+    // Wait one tick so the now-active panel is visible before scrolling to it.
+    setTimeout(() => {
+      document.getElementById(`panel-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 0)
   }
+
+  // Tabs for the feature panels. The 分析 (analysis) tab only appears once analysis data loaded.
+  const detailTabs = useMemo<{ key: DeliverableStage | 'comments'; labelKey: MessageKey }[]>(() => [
+    { key: 'simulation', labelKey: 'sim.title' },
+    ...(analysis ? [{ key: 'analysis' as const, labelKey: 'analysis.title' as MessageKey }] : []),
+    { key: 'coverage', labelKey: 'coverage.title' },
+    { key: 'review', labelKey: 'review.title' },
+    { key: 'testcase', labelKey: 'testcase.title' },
+    { key: 'version', labelKey: 'version.title' },
+    { key: 'comments', labelKey: 'reviewComments.title' },
+  ], [analysis])
 
   const handleExport = () => {
     if (!machine) return
@@ -182,17 +202,50 @@ export default function DetailPage() {
         </div>
 
         <div className={`space-y-4 ${sideBySide ? 'w-80 shrink-0' : ''}`}>
-          <div id="panel-simulation">
+          {/* SOT-1224 (案A): tab bar so the feature panels aren't a tall vertical stack. */}
+          <div className="flex flex-wrap gap-1.5 border-b border-border pb-2">
+            {detailTabs.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === tab.key
+                    ? 'bg-blue-600 text-white'
+                    : 'text-foreground-muted hover:bg-surface-muted'
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
+            ))}
+          </div>
+          {/* All panels stay mounted — Review/TestCases/Version feed the diagram overlay via their
+              callbacks (SOT-1181), so inactive tabs are hidden (not unmounted). */}
+          <div id="panel-simulation" className={activeTab === 'simulation' ? '' : 'hidden'}>
             <SimulationPanel
               machine={machine}
             />
           </div>
-          {analysis && <div id="panel-analysis"><AnalysisPanel analysis={analysis} /></div>}
-          <div id="panel-coverage"><CoveragePanel machine={machine} /></div>
-          <div id="panel-review"><ReviewPanel machine={machine} onFindings={setReviewFindings} /></div>
-          <div id="panel-testcase"><TestCasesPanel machine={machine} onCases={setTestCases} /></div>
-          <div id="panel-version"><VersionHistoryPanel machine={machine} onDiffChange={setVersionDiff} /></div>
-          <ReviewComments machineId={machine.id} />
+          {analysis && (
+            <div id="panel-analysis" className={activeTab === 'analysis' ? '' : 'hidden'}>
+              <AnalysisPanel analysis={analysis} />
+            </div>
+          )}
+          <div id="panel-coverage" className={activeTab === 'coverage' ? '' : 'hidden'}>
+            <CoveragePanel machine={machine} />
+          </div>
+          <div id="panel-review" className={activeTab === 'review' ? '' : 'hidden'}>
+            <ReviewPanel machine={machine} onFindings={setReviewFindings} />
+          </div>
+          <div id="panel-testcase" className={activeTab === 'testcase' ? '' : 'hidden'}>
+            <TestCasesPanel machine={machine} onCases={setTestCases} />
+          </div>
+          <div id="panel-version" className={activeTab === 'version' ? '' : 'hidden'}>
+            <VersionHistoryPanel machine={machine} onDiffChange={setVersionDiff} />
+          </div>
+          <div className={activeTab === 'comments' ? '' : 'hidden'}>
+            <ReviewComments machineId={machine.id} />
+          </div>
         </div>
       </div>
 
