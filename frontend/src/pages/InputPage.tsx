@@ -276,19 +276,6 @@ export default function InputPage() {
             />
           </div>
 
-          {/* 自然言語による修正（SOT-1076）。SOT-1082: 記述textareaの直下に配置。解析済みのときのみ表示。 */}
-          {parsed && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground-muted">{t('input.refineLabel')}</label>
-              <textarea
-                value={refineInstruction}
-                onChange={(e) => setRefineInstruction(e.target.value)}
-                placeholder={t('input.refinePlaceholder')}
-                className="w-full h-24 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-              />
-            </div>
-          )}
-
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
               <p className="font-medium">{t('input.aiFailed')}</p>
@@ -309,7 +296,7 @@ export default function InputPage() {
             </div>
           )}
 
-          {/* SOT-1082: 「AIで解析する」と「🪄 修正する」を横並びで表示。修正は解析済みのときのみ。 */}
+          {/* SOT-1221: 「🪄 修正する」は解析結果（生成図）の下へ移動。ここは「AIで解析する」のみ。 */}
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => parseMutation.mutate(text)}
@@ -318,15 +305,6 @@ export default function InputPage() {
             >
               {parseMutation.isPending ? t('input.parsing') : t('input.parseBtn')}
             </button>
-            {parsed && (
-              <button
-                onClick={() => refineMutation.mutate(refineInstruction)}
-                disabled={!refineInstruction.trim() || refineMutation.isPending}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              >
-                {refineMutation.isPending ? t('input.refining') : t('input.refineBtn')}
-              </button>
-            )}
           </div>
         </div>
       )}
@@ -464,6 +442,24 @@ export default function InputPage() {
               <StateDiagram machine={previewMachine} />
             </div>
           )}
+
+          {/* SOT-1221: 自然言語による修正を生成図の下へ移動。 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground-muted">{t('input.refineLabel')}</label>
+            <textarea
+              value={refineInstruction}
+              onChange={(e) => setRefineInstruction(e.target.value)}
+              placeholder={t('input.refinePlaceholder')}
+              className="w-full h-24 px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+            <button
+              onClick={() => refineMutation.mutate(refineInstruction)}
+              disabled={!refineInstruction.trim() || refineMutation.isPending}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {refineMutation.isPending ? t('input.refining') : t('input.refineBtn')}
+            </button>
+          </div>
 
           {/* SOT-1082: 詳細項目（フロー名/開始工程/工程一覧/アクション一覧/網羅性チェック）の表示切替。初期非表示。 */}
           <button
