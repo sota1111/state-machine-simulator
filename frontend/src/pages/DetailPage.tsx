@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getModel, getAnalysis } from '../api'
+import type { ReviewFinding, TestCase } from '../types'
+import type { FlowDiff } from '../utils/versionDiff'
+import { aggregateStateDeliverables, type DeliverableStage } from '../utils/stateDeliverables'
 import StateDiagram from '../components/StateDiagram'
 import StateDiagramEditor from '../components/StateDiagramEditor'
 import SimulationPanel from '../components/SimulationPanel'
@@ -23,7 +26,13 @@ export default function DetailPage() {
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const currentStateFromStore = useSimulationStore(state => state.currentState)
+  const visitedTransitionIds = useSimulationStore(state => state.visitedTransitionIds)
   const initForMachine = useSimulationStore(state => state.initForMachine)
+
+  // Deliverables lifted from the side panels so the state diagram can overlay them (SOT-1181).
+  const [reviewFindings, setReviewFindings] = useState<ReviewFinding[]>([])
+  const [testCases, setTestCases] = useState<TestCase[]>([])
+  const [versionDiff, setVersionDiff] = useState<FlowDiff | null>(null)
 
   // Transition direction is owned here (lifted out of StateDiagram) so it can also drive
   // the page layout: on PC + vertical direction, the event buttons move beside the diagram.
@@ -51,6 +60,28 @@ export default function DetailPage() {
     queryFn: () => getAnalysis(id!),
     enabled: !!id,
   })
+
+  // Aggregate every 工程's deliverables per state/transition for the diagram overlay.
+  const deliverables = useMemo(
+    () =>
+      machine
+        ? aggregateStateDeliverables({
+            machine,
+            currentState,
+            visitedTransitionIds,
+            analysis,
+            reviewFindings,
+            testCases,
+            versionDiff,
+          })
+        : undefined,
+    [machine, currentState, visitedTransitionIds, analysis, reviewFindings, testCases, versionDiff],
+  )
+
+  // Badge / popover "jump to panel" — scroll the matching 工程 panel into view.
+  const navigateToStage = (stage: DeliverableStage) => {
+    document.getElementById(`panel-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   const handleExport = () => {
     if (!machine) return
@@ -144,19 +175,23 @@ export default function DetailPage() {
               machine={machine}
               isVertical={isVertical}
               onToggleVertical={() => setOrientationOverride(!isVertical)}
+              deliverables={deliverables}
+              onStageNavigate={navigateToStage}
             />
           )}
         </div>
 
         <div className={`space-y-4 ${sideBySide ? 'w-80 shrink-0' : ''}`}>
-          <SimulationPanel
-            machine={machine}
-          />
-          {analysis && <AnalysisPanel analysis={analysis} />}
-          <CoveragePanel machine={machine} />
-          <ReviewPanel machine={machine} />
-          <TestCasesPanel machine={machine} />
-          <VersionHistoryPanel machine={machine} />
+          <div id="panel-simulation">
+            <SimulationPanel
+              machine={machine}
+            />
+          </div>
+          {analysis && <div id="panel-analysis"><AnalysisPanel analysis={analysis} /></div>}
+          <div id="panel-coverage"><CoveragePanel machine={machine} /></div>
+          <div id="panel-review"><ReviewPanel machine={machine} onFindings={setReviewFindings} /></div>
+          <div id="panel-testcase"><TestCasesPanel machine={machine} onCases={setTestCases} /></div>
+          <div id="panel-version"><VersionHistoryPanel machine={machine} onDiffChange={setVersionDiff} /></div>
           <ReviewComments machineId={machine.id} />
         </div>
       </div>

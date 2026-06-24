@@ -1,18 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { StateMachine } from '../types'
 import { getVersions, getVersion } from '../api'
 import { useI18n } from '../i18n/useI18n'
 import { sampleLabel } from '../i18n/sampleLabels'
-import { diffFlows, isEmptyDiff, type FlowSnapshot } from '../utils/versionDiff'
+import { diffFlows, isEmptyDiff, type FlowDiff, type FlowSnapshot } from '../utils/versionDiff'
 
 interface Props {
   machine: StateMachine
+  // Lift the selected-version diff up so the state diagram can overlay it (SOT-1181).
+  onDiffChange?: (diff: FlowDiff | null) => void
 }
 
 // Version history + diff view (SOT-1102, 2-C). Lists stored snapshots and shows the
 // diff between a selected historical version and the current machine.
-export default function VersionHistoryPanel({ machine }: Props) {
+export default function VersionHistoryPanel({ machine, onDiffChange }: Props) {
   const { t, lang } = useI18n()
   const [selected, setSelected] = useState<number | null>(null)
 
@@ -39,6 +41,13 @@ export default function VersionHistoryPanel({ machine }: Props) {
         current,
       )
     : null
+
+  // Surface the active diff (or null when no version is selected) to the parent so the
+  // diagram overlay (案C) and per-state badges (案A) can reflect version changes.
+  useEffect(() => {
+    onDiffChange?.(selected !== null ? diff : null)
+    // diff is recomputed every render from `version`; key the effect on its identity.
+  }, [diff, selected, onDiffChange])
 
   return (
     <div className="bg-surface rounded-lg border border-border shadow-card p-4 space-y-3">

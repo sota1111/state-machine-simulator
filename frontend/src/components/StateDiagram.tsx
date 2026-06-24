@@ -3,6 +3,16 @@ import { useSimulationStore } from '../store/simulationStore'
 import { useI18n } from '../i18n/useI18n'
 import { sampleLabel } from '../i18n/sampleLabels'
 import type { StateMachine, State, Transition } from '../types'
+import {
+  DELIVERABLE_STAGES,
+  STAGE_COLOR,
+  TONE_COLOR,
+  stageCounts,
+  type DeliverableAggregation,
+  type DeliverableEntry,
+  type DeliverableStage,
+  type DeliverableTone,
+} from '../utils/stateDeliverables'
 
 interface Props {
   machine: StateMachine
@@ -11,6 +21,18 @@ interface Props {
   // When omitted, the component falls back to its own responsive default + internal toggle.
   isVertical?: boolean
   onToggleVertical?: () => void
+  // Per-state / per-transition deliverable aggregation (SOT-1181). When provided, the diagram
+  // renders per-node stage badges (案A), opens a node popover on click (案B), and offers a
+  // stage-layer overlay toggle (案C). When omitted, the diagram behaves exactly as before.
+  deliverables?: DeliverableAggregation
+  // Badge / popover "jump to panel" callback: scrolls the matching 工程 panel into view.
+  onStageNavigate?: (stage: DeliverableStage) => void
+}
+
+// Strongest-first tone precedence so a node/edge with mixed deliverables shows its most urgent one.
+const TONE_RANK: Record<DeliverableTone, number> = { bad: 3, warn: 2, good: 1, info: 0 }
+function dominantTone(entries: DeliverableEntry[]): DeliverableTone {
+  return entries.reduce<DeliverableTone>((acc, e) => (TONE_RANK[e.tone] > TONE_RANK[acc] ? e.tone : acc), 'info')
 }
 
 interface NodePos {
@@ -21,11 +43,25 @@ interface NodePos {
   state: State
 }
 
-export default function StateDiagram({ machine, isVertical: controlledVertical, onToggleVertical }: Props) {
+export default function StateDiagram({ machine, isVertical: controlledVertical, onToggleVertical, deliverables, onStageNavigate }: Props) {
   const { t, lang } = useI18n()
   const currentState = useSimulationStore(state => state.currentState) ?? machine.initial_state
   const visitedTransitionIdsArr = useSimulationStore(state => state.visitedTransitionIds)
   const visitedTransitionIds = new Set(visitedTransitionIdsArr)
+
+  // Deliverable overlay state (SOT-1181). `overlayLayer` drives the 案C single-stage coloring;
+  // `selectedNode` drives the 案B per-state popover. Both are inert when no deliverables prop.
+  const [overlayLayer, setOverlayLayer] = useState<DeliverableStage | null>(null)
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const byState = deliverables?.byState
+  const byTransition = deliverables?.byTransition
+  // Only show overlay/badge UI when there is at least one deliverable to display.
+  const hasDeliverables = !!deliverables && ((byState?.size ?? 0) > 0 || (byTransition?.size ?? 0) > 0)
+  // Entries for a state/transition restricted to the active overlay layer (案C).
+  const stateOverlay = (name: string): DeliverableEntry[] =>
+    overlayLayer ? (byState?.get(name) ?? []).filter(e => e.stage === overlayLayer) : []
+  const transitionOverlay = (id: string): DeliverableEntry[] =>
+    overlayLayer ? (byTransition?.get(id) ?? []).filter(e => e.stage === overlayLayer) : []
 
   // The diagram lays out top-to-bottom (vertical) by default on every screen size:
   // BFS depth advances down the y axis and siblings spread across the x axis.
@@ -352,6 +388,33 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           {Math.round(effectiveScale * 100)}%
         </span>
       </div>
+
+      {/* 工程レイヤ切替（案C）: select a single 工程 to color-overlay across the whole diagram. */}
+      {hasDeliverables && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-foreground-subtle">{t('deliverable.layer')}</span>
+          <button
+            type="button"
+            onClick={() => setOverlayLayer(null)}
+            className={`px-3 py-1 text-sm rounded border ${overlayLayer === null ? 'bg-blue-600 text-white border-blue-600' : 'border-border text-foreground-muted hover:bg-surface-muted'}`}
+          >
+            {t('deliverable.layerAll')}
+          </button>
+          {DELIVERABLE_STAGES.map(stage => (
+            <button
+              key={stage}
+              type="button"
+              onClick={() => setOverlayLayer(prev => (prev === stage ? null : stage))}
+              className={`px-3 py-1 text-sm rounded border ${overlayLayer === stage ? 'text-white' : 'border-border text-foreground-muted hover:bg-surface-muted'}`}
+              style={overlayLayer === stage ? { backgroundColor: STAGE_COLOR[stage], borderColor: STAGE_COLOR[stage] } : undefined}
+            >
+              <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ backgroundColor: STAGE_COLOR[stage] }} />
+              {t(`deliverable.${stage}`)}
+            </button>
+          ))}
+          <span className="ml-1 text-xs text-foreground-subtle">{t('deliverable.layerHint')}</span>
+        </div>
+      )}
       <div className="min-w-max">
         <svg width={maxColWidth * effectiveScale} height={maxRowHeight * effectiveScale} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
           <defs>
@@ -419,6 +482,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
             let strokeWidth = 1.5
             let dashArray = ''
             let marker = 'url(#arrowhead)'
+            let edgeOpacity = 1
 
             if (isTraversed) {
               stroke = '#4f46e5'
@@ -430,6 +494,22 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
               marker = 'url(#arrowhead-available)'
             }
 
+            // 案C overlay: when a 工程 layer is active, color edges that carry that stage's
+            // deliverable by tone and dim the rest, so the selected 工程 stands out.
+            if (overlayLayer) {
+              const matched = transitionOverlay(t.id)
+              if (matched.length > 0) {
+                stroke = TONE_COLOR[dominantTone(matched)]
+                strokeWidth = 2.5
+                dashArray = ''
+                marker = 'url(#arrowhead)'
+              } else {
+                stroke = '#d1d5db'
+                strokeWidth = 1
+                edgeOpacity = 0.3
+              }
+            }
+
             return (
               <g key={t.id}>
                 <path
@@ -438,8 +518,9 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                   stroke={stroke}
                   strokeWidth={strokeWidth}
                   strokeDasharray={dashArray}
+                  strokeOpacity={edgeOpacity}
                   markerEnd={marker}
-                  className={isAvailable ? 'sm-edge-available' : undefined}
+                  className={isAvailable && !overlayLayer ? 'sm-edge-available' : undefined}
                 />
                 <text
                   className="text-[10px] font-mono"
@@ -491,6 +572,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
             let fill = 'white'
             let stroke = '#9ca3af'
             let strokeWidth = 1
+            let nodeOpacity = 1
 
             if (isCurrent) {
               fill = '#dbeafe'
@@ -504,8 +586,28 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
               strokeWidth = 2
             }
 
+            // 案C overlay: recolor by the active 工程's deliverable tone; dim unrelated nodes.
+            if (overlayLayer) {
+              const matched = stateOverlay(state.name)
+              if (matched.length > 0) {
+                stroke = TONE_COLOR[dominantTone(matched)]
+                strokeWidth = 3
+                fill = '#fff'
+              } else {
+                stroke = '#d1d5db'
+                strokeWidth = 1
+                fill = 'white'
+                nodeOpacity = 0.4
+              }
+            }
+
+            // 案A badges: per-stage deliverable counts for this state.
+            const counts = stageCounts(byState?.get(state.name))
+            const badgeStages = hasDeliverables ? DELIVERABLE_STAGES.filter(s => counts[s] > 0) : []
+            const isSelected = selectedNode === state.name
+
             return (
-              <g key={state.id}>
+              <g key={state.id} opacity={nodeOpacity}>
                 <rect
                   x={x}
                   y={y}
@@ -513,9 +615,11 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                   height={height}
                   rx="8"
                   fill={fill}
-                  stroke={stroke}
-                  strokeWidth={strokeWidth}
+                  stroke={isSelected ? '#1d4ed8' : stroke}
+                  strokeWidth={isSelected ? Math.max(strokeWidth, 3) : strokeWidth}
                   className={isCurrent ? 'sm-node-current' : undefined}
+                  style={hasDeliverables ? { cursor: 'pointer' } : undefined}
+                  onClick={hasDeliverables ? () => setSelectedNode(prev => (prev === state.name ? null : state.name)) : undefined}
                 />
                 <text
                   x={x + width / 2}
@@ -551,9 +655,85 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
                     strokeDasharray="2 2"
                    />
                 )}
+                {/* 案A: per-stage deliverable badges, right-aligned along the node's bottom edge.
+                    Click jumps to the matching 工程 panel. */}
+                {badgeStages.map((stage, i) => {
+                  const bw = 16
+                  const bx = x + width - (i + 1) * (bw + 2)
+                  const by = y + height - 8
+                  return (
+                    <g
+                      key={`badge-${stage}`}
+                      transform={`translate(${bx}, ${by})`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={e => { e.stopPropagation(); onStageNavigate?.(stage) }}
+                    >
+                      <title>{`${t(`deliverable.${stage}`)}: ${counts[stage]}`}</title>
+                      <rect width={bw} height="14" rx="4" fill={STAGE_COLOR[stage]} stroke="#fff" strokeWidth="1" />
+                      <text x={bw / 2} y="10" textAnchor="middle" fill="white" className="text-[8px] font-bold">
+                        {counts[stage]}
+                      </text>
+                    </g>
+                  )
+                })}
               </g>
             )
           })}
+
+          {/* 案B: per-state popover aggregating every 工程's deliverables for the clicked node. */}
+          {selectedNode && hasDeliverables && (() => {
+            const pos = nodePositions.get(selectedNode)
+            if (!pos) return null
+            const entries = byState?.get(selectedNode) ?? []
+            const PW = 260
+            const PH = 150
+            // Keep the popover inside the canvas.
+            const px = Math.min(Math.max(pos.x, MARGIN), Math.max(MARGIN, maxColWidth - PW - MARGIN))
+            const py = pos.y + pos.height + 8 + PH > maxRowHeight ? Math.max(MARGIN, pos.y - PH - 8) : pos.y + pos.height + 8
+            return (
+              <foreignObject x={px} y={py} width={PW} height={PH} style={{ overflow: 'visible' }}>
+                <div className="bg-surface border border-border rounded-lg shadow-card p-3 text-xs" style={{ width: PW }}>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="font-semibold text-foreground truncate">{sampleLabel(selectedNode, lang)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNode(null)}
+                      aria-label={t('deliverable.close')}
+                      className="text-foreground-subtle hover:text-foreground px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-foreground-subtle mb-1.5">{t('deliverable.popoverTitle')}</p>
+                  {entries.length === 0 ? (
+                    <p className="text-foreground-subtle italic">{t('deliverable.none')}</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-28 overflow-auto">
+                      {DELIVERABLE_STAGES.filter(s => entries.some(e => e.stage === s)).map(stage => (
+                        <div key={stage}>
+                          <button
+                            type="button"
+                            onClick={() => onStageNavigate?.(stage)}
+                            className="flex items-center gap-1.5 font-medium text-foreground hover:underline"
+                          >
+                            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLOR[stage] }} />
+                            {t(`deliverable.${stage}`)}
+                          </button>
+                          <ul className="ml-3.5 mt-0.5 space-y-0.5">
+                            {entries.filter(e => e.stage === stage).map((e, i) => (
+                              <li key={i} style={{ color: TONE_COLOR[e.tone] }} className="truncate">
+                                • {sampleLabel(e.text, lang)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </foreignObject>
+            )
+          })()}
         </svg>
       </div>
 
@@ -586,6 +766,19 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           </div>
         )}
       </div>
+
+      {/* Deliverable stage legend (案A/B/C). */}
+      {hasDeliverables && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground-muted">
+          <span className="font-medium">{t('deliverable.legend')}:</span>
+          {DELIVERABLE_STAGES.map(stage => (
+            <div key={stage} className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: STAGE_COLOR[stage] }} />
+              <span>{t(`deliverable.${stage}`)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -9,6 +9,8 @@ import { useSimulationStore } from '../store/simulationStore'
 
 interface Props {
   machine: StateMachine
+  // Lift generated cases up so the state diagram can overlay covered states (SOT-1181).
+  onCases?: (cases: TestCase[]) => void
 }
 
 const CATEGORY_LABEL: Record<TestCaseCategory, MessageKey> = {
@@ -29,7 +31,7 @@ const CATEGORY_ORDER: TestCaseCategory[] = ['normal', 'abnormal', 'cancel', 'tim
 
 // Auto-generated test cases panel (SOT-1097). Generates normal / abnormal / cancel /
 // timeout cases from the machine via backend /api/testcases.
-export default function TestCasesPanel({ machine }: Props) {
+export default function TestCasesPanel({ machine, onCases }: Props) {
   const { t } = useI18n()
   const setPendingSequence = useSimulationStore(state => state.setPendingSequence)
   const [coverage, setCoverage] = useState<CoverageRun | null>(null)
@@ -41,6 +43,7 @@ export default function TestCasesPanel({ machine }: Props) {
         states: machine.states.map(s => ({ name: s.name, description: s.description ?? '', is_terminal: s.is_terminal })),
         transitions: machine.transitions.map(tr => ({ from_state: tr.from_state, to_state: tr.to_state, event: tr.event })),
       }),
+    onSuccess: data => onCases?.(data.cases),
   })
 
   const cases: TestCase[] = mutation.data?.cases ?? []
