@@ -742,19 +742,6 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
           </div>
         )}
       </div>
-
-      {/* Deliverable stage legend (案A/B/C). */}
-      {hasDeliverables && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground-muted">
-          <span className="font-medium">{t('deliverable.legend')}:</span>
-          {DELIVERABLE_STAGES.map(stage => (
-            <div key={stage} className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: STAGE_COLOR[stage] }} />
-              <span>{t(`deliverable.${stage}`)}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
