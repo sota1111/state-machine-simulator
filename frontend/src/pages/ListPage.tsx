@@ -74,16 +74,46 @@ export default function ListPage() {
           <p className="text-sm text-foreground-subtle mt-1">{t('list.errorBody')}</p>
         </div>
       ) : !models || models.length === 0 ? (
-        <div className="text-center py-16 bg-surface rounded-lg border border-border">
-          <p className="text-foreground-subtle">
-            {isSampleView ? t('list.emptySample') : t('list.emptyMine')}
-          </p>
-          {!isSampleView && (
-            <Link to="/input" className="mt-4 inline-block text-blue-600 hover:underline">
-              {t('list.createFirst')}
-            </Link>
-          )}
-        </div>
+        isSampleView ? (
+          <div className="text-center py-16 bg-surface rounded-lg border border-border">
+            <p className="text-foreground-subtle">{t('list.emptySample')}</p>
+          </div>
+        ) : (
+          /* SOT-1224 (案B): first-run onboarding — a 3-step guide instead of a bare message. */
+          <div className="bg-surface rounded-lg border border-border p-8 sm:p-10">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-foreground">{t('list.onboardTitle')}</h2>
+              <p className="mt-2 text-foreground-muted">{t('list.onboardLead')}</p>
+            </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {([
+                ['list.onboardStep1Title', 'list.onboardStep1Body'],
+                ['list.onboardStep2Title', 'list.onboardStep2Body'],
+                ['list.onboardStep3Title', 'list.onboardStep3Body'],
+              ] as const).map(([titleKey, bodyKey]) => (
+                <div key={titleKey} className="rounded-lg border border-border bg-surface-muted p-4">
+                  <p className="font-semibold text-foreground">{t(titleKey)}</p>
+                  <p className="mt-1 text-sm text-foreground-subtle">{t(bodyKey)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <Link
+                to="/input"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                {t('list.onboardCta')}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setView('sample')}
+                className="text-sm text-foreground-subtle hover:text-foreground-muted hover:underline"
+              >
+                {t('list.onboardSampleHint')}
+              </button>
+            </div>
+          </div>
+        )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {models.map(model => (
