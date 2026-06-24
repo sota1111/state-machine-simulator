@@ -209,6 +209,11 @@ export default function InputPage() {
         </button>
       </div>
 
+      {/* SOT-1224 (案C): one-line description of the selected mode so users know which to pick. */}
+      <p className="-mt-2 text-sm text-foreground-subtle">
+        {mode === 'ai' ? t('input.modeAiDesc') : mode === 'import' ? t('input.modeImportDesc') : t('input.modeManualDesc')}
+      </p>
+
       {/* Import mode (SOT-1104, 2-E) */}
       {mode === 'import' && (
         <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
@@ -461,7 +466,17 @@ export default function InputPage() {
             </button>
           </div>
 
-          {/* SOT-1082: 詳細項目（フロー名/開始工程/工程一覧/アクション一覧/網羅性チェック）の表示切替。初期非表示。 */}
+          {/* SOT-1224 (案C): 網羅性チェック・仕様レビューは「詳細を表示」に隠さず既定で表示する。
+              （いずれもボタン操作で実行するパネルなので解析前にAPIは呼ばれない） */}
+          {previewMachine && previewMachine.states.length > 0 && (
+            <CoveragePanel machine={previewMachine} />
+          )}
+
+          {previewMachine && previewMachine.states.length > 0 && (
+            <ReviewPanel machine={previewMachine} specText={mode === 'import' ? importText : text} />
+          )}
+
+          {/* SOT-1082 / SOT-1224: その他の詳細項目（フロー名/開始工程/工程一覧/アクション一覧/テストケース）はトグル表示。 */}
           <button
             type="button"
             onClick={() => setShowDetails(v => !v)}
@@ -515,14 +530,6 @@ export default function InputPage() {
                   ))}
                 </div>
               </div>
-
-              {previewMachine && previewMachine.states.length > 0 && (
-                <CoveragePanel machine={previewMachine} />
-              )}
-
-              {previewMachine && previewMachine.states.length > 0 && (
-                <ReviewPanel machine={previewMachine} specText={mode === 'import' ? importText : text} />
-              )}
 
               {previewMachine && previewMachine.states.length > 0 && (
                 <TestCasesPanel machine={previewMachine} />
