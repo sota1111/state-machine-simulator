@@ -8,6 +8,8 @@ interface Props {
   machine: StateMachine
   // Original natural-language spec, used to enrich AI-assisted findings (optional).
   specText?: string
+  // Lift findings up so the state diagram can overlay them on states (SOT-1181).
+  onFindings?: (findings: ReviewFinding[]) => void
 }
 
 // i18n label key for each finding type.
@@ -29,7 +31,7 @@ const SEVERITY_STYLE: Record<ReviewSeverity, string> = {
 
 // Design-review panel (SOT-1096). Runs backend /api/review over the given machine
 // and lists detected spec problems with a reason and a repair suggestion each.
-export default function ReviewPanel({ machine, specText }: Props) {
+export default function ReviewPanel({ machine, specText, onFindings }: Props) {
   const { t } = useI18n()
 
   const mutation = useMutation({
@@ -40,6 +42,7 @@ export default function ReviewPanel({ machine, specText }: Props) {
         transitions: machine.transitions.map(tr => ({ from_state: tr.from_state, to_state: tr.to_state, event: tr.event })),
         spec_text: specText,
       }),
+    onSuccess: data => onFindings?.(data.findings),
   })
 
   const findings: ReviewFinding[] = mutation.data?.findings ?? []
