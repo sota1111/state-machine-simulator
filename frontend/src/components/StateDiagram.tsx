@@ -51,7 +51,8 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
 
   // Deliverable overlay state (SOT-1181). `overlayLayer` drives the 案C single-stage coloring;
   // `selectedNode` drives the 案B per-state popover. Both are inert when no deliverables prop.
-  const [overlayLayer, setOverlayLayer] = useState<DeliverableStage | null>(null)
+  // 工程レイヤ切替 UI is hidden (SOT-1222); overlayLayer stays null so overlay branches are inert.
+  const [overlayLayer] = useState<DeliverableStage | null>(null)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const byState = deliverables?.byState
   const byTransition = deliverables?.byTransition
@@ -389,32 +390,7 @@ export default function StateDiagram({ machine, isVertical: controlledVertical, 
         </span>
       </div>
 
-      {/* 工程レイヤ切替（案C）: select a single 工程 to color-overlay across the whole diagram. */}
-      {hasDeliverables && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-foreground-subtle">{t('deliverable.layer')}</span>
-          <button
-            type="button"
-            onClick={() => setOverlayLayer(null)}
-            className={`px-3 py-1 text-sm rounded border ${overlayLayer === null ? 'bg-blue-600 text-white border-blue-600' : 'border-border text-foreground-muted hover:bg-surface-muted'}`}
-          >
-            {t('deliverable.layerAll')}
-          </button>
-          {DELIVERABLE_STAGES.map(stage => (
-            <button
-              key={stage}
-              type="button"
-              onClick={() => setOverlayLayer(prev => (prev === stage ? null : stage))}
-              className={`px-3 py-1 text-sm rounded border ${overlayLayer === stage ? 'text-white' : 'border-border text-foreground-muted hover:bg-surface-muted'}`}
-              style={overlayLayer === stage ? { backgroundColor: STAGE_COLOR[stage], borderColor: STAGE_COLOR[stage] } : undefined}
-            >
-              <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ backgroundColor: STAGE_COLOR[stage] }} />
-              {t(`deliverable.${stage}`)}
-            </button>
-          ))}
-          <span className="ml-1 text-xs text-foreground-subtle">{t('deliverable.layerHint')}</span>
-        </div>
-      )}
+      {/* 工程レイヤ切替（案C）は非表示（SOT-1222）。overlayLayer は常に null のままで描画は従来どおり。 */}
       <div className="min-w-max">
         <svg width={maxColWidth * effectiveScale} height={maxRowHeight * effectiveScale} viewBox={`0 0 ${maxColWidth} ${maxRowHeight}`} className="overflow-visible">
           <defs>
