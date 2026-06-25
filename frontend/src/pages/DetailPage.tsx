@@ -208,6 +208,7 @@ export default function DetailPage() {
               <button
                 key={tab.key}
                 type="button"
+                data-testid={`tab-${tab.key}`}
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   activeTab === tab.key

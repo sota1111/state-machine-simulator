@@ -306,6 +306,7 @@ export default function InputPage() {
             <button
               onClick={() => parseMutation.mutate(text)}
               disabled={!text.trim() || parseMutation.isPending}
+              data-testid="parse-submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {parseMutation.isPending ? t('input.parsing') : t('input.parseBtn')}
@@ -541,6 +542,7 @@ export default function InputPage() {
             <button
               onClick={handleSaveParsed}
               disabled={saveMutation.isPending}
+              data-testid="save-parsed"
               className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {saveMutation.isPending ? t('input.saving') : t('input.saveThisModel')}
