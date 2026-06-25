@@ -71,7 +71,7 @@ export default function DashboardPage() {
         ].map(({ label, value, color }) => (
           <div key={label} className={`${kpiCardClass[color]} border rounded-lg p-4 text-center`}>
             <div className={`text-3xl font-bold ${kpiValueClass[color]}`}>{value}</div>
-            <div className="text-sm text-foreground mt-1">{label}</div>
+            <div className="text-sm text-gray-800 mt-1">{label}</div>
           </div>
         ))}
       </div>
