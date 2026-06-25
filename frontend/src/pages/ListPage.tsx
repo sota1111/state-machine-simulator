@@ -44,6 +44,7 @@ export default function ListPage() {
       <div className="flex gap-2">
         <button
           type="button"
+          data-testid="view-mine"
           onClick={() => setView('mine')}
           className={tabClass(view === 'mine')}
         >
@@ -51,6 +52,7 @@ export default function ListPage() {
         </button>
         <button
           type="button"
+          data-testid="view-sample"
           onClick={() => setView('sample')}
           className={tabClass(view === 'sample')}
         >
