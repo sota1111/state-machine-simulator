@@ -17,19 +17,23 @@
 - **エクスポート**: JSON / PlantUML 形式
 - **認証**: Firebase Identity Toolkit によるサーバーサイド認証、UI は日本語/英語切替に対応
 
-## 認証情報なし開発クイックスタート
+## 開発クイックスタート（Gemini APIキー不要）
 
-**Gemini APIキーなしで即座にローカル動作確認が可能です。**
+**Gemini APIキーなしでローカル動作確認が可能です**（AIによる自然言語解析以外の全機能を利用できます）。
 
-手動作成モードを使用するため、Gemini APIへの接続は不要です。
+ただしアプリはログイン必須のため、**認証用の設定は必要**です。
 
 ```bash
 # 1. リポジトリのクローン
 git clone https://github.com/sota1111/state-machine-simulator.git
 cd state-machine-simulator
 
-# 2. 環境変数設定（APIキーは省略可）
+# 2. 環境変数設定（GEMINI_API_KEY は省略可。認証用の値は必須）
 cp .env.example .env
+# .env に最低限、以下のログイン認証用の値を設定する:
+#   FIREBASE_WEB_API_KEY（または FIREBASE_API_KEY）
+#   AUTH_SECRET
+#   ALLOWED_USER_EMAILS
 
 # 3. 起動
 docker compose up --build
@@ -37,10 +41,13 @@ docker compose up --build
 
 アクセス: http://localhost:5173
 
-**認証情報が不要な理由:**
+**Gemini APIキーが不要な理由:**
 - `GEMINI_API_KEY` 未設定時は「手動作成モード」でステートマシンを作成できます
 - ローカルデータはインメモリに保持されます（GCP不要・ファイルDB不要）
-- AIによる自然言語解析が不要な場合は、APIキーなしで全機能を利用可能です
+- AIによる自然言語解析が不要な場合は、Gemini APIキーなしで利用可能です
+
+> **Note**: すべての API は認証必須です（`AUTH_SECRET` と有効なログインセッションが無いと `401 Unauthorized`）。
+> `FIREBASE_WEB_API_KEY` / `AUTH_SECRET` / `ALLOWED_USER_EMAILS` は省略できません。
 
 ## 起動方法
 
